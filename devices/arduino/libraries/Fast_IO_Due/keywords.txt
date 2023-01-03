@@ -1,0 +1,19 @@
+####################################
+# Datatypes (KEYWORD1)
+####################################
+Fast_IO_Due	KEYWORD 1
+
+####################################
+# Methods and Functions (KEYWORD2)
+####################################
+get_norm		KEYWORD 2
+initialize_adc	KEYWORD 2
+initialize_dac	KEYWORD 2
+write_dac	KEYWORD 2
+read_adc		KEYWORD 2
+read_anyadc	KEYWORD 2
+
+###############################
+# Constants (KEYWORD 3)
+###############################
+IOnorm KEYWORD 3

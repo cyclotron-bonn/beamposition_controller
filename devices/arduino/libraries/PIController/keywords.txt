@@ -1,0 +1,23 @@
+####################################
+# Datatypes (KEYWORD1)
+####################################
+FastPID	KEYWORD 1
+
+####################################
+# Methods and Functions (KEYWORD2)
+####################################
+setCoefficients	KEYWORD 2
+setOutputConfig	KEYWORD 2
+setOutputRange	KEYWORD 2
+clear		KEYWORD 2
+configure	KEYWORD 2
+steo		KEYWORD 2
+err		KEYWORD 2
+
+###############################
+# Constants (KEYWORD 3)
+###############################
+_p	KEYWORD 3
+_i	KEYWORD 3
+_d	KEYWORD 3
+_hz	KEYWORD 3

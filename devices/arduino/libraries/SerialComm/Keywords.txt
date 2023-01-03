@@ -1,0 +1,14 @@
+####################################
+# Datatypes (KEYWORD1)
+####################################
+SerialComm	KEYWORD 1
+
+####################################
+# Methods and Functions (KEYWORD2)
+####################################
+process		KEYWORD 2
+reset_input_buffer KEYWORD 2
+
+###############################
+# Constants (KEYWORD 3)
+###############################
