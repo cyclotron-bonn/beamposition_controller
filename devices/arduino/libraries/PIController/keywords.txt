@@ -1,7 +1,7 @@
 ####################################
 # Datatypes (KEYWORD1)
 ####################################
-FastPID	KEYWORD 1
+PIController	KEYWORD 1
 
 ####################################
 # Methods and Functions (KEYWORD2)

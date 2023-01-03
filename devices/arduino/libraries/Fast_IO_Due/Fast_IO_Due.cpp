@@ -81,7 +81,7 @@ bool Fast_IO_Due::calc_norm(size_t nc=10){
     /*
     * Read two input channels A0 und A1 'nc' number of times, add respective values up and store them in _UA0 and _UA1
     */
-    int32_t _UA0=0, _UA1=0;
+    uint16_t _UA0=0, _UA1=0;
     for(uint8_t c=0; c<nc;c++){ 
         while(!ADC_ISR_EOC7);
         _UA0+=ADC->ADC_CDR[7];
