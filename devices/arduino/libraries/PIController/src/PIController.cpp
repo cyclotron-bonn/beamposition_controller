@@ -1,6 +1,17 @@
 #include "PIController.h"
 #include <Arduino.h>
 
+
+IOController::~IOController(){
+}
+
+void IOController::setup(uint8_t ADD, uint8_t A0, uint8_t A1){
+    DAC_ADDRESS = ADD;
+    ADC_A0 = A0;
+    ADC_A1 = A1;
+}
+
+
 PIController::~PIController() {
 }
 
@@ -99,7 +110,7 @@ int16_t PIController::step(int16_t sp, int16_t fb) {
     int32_t out = int32_t(P) + int32_t(I);
     
     // Remove the integer scaling factor.
-    int16_t rval = out/PARAM_MULT;
+    int16_t rval = out>>PARAM_SHIFT;
     
     // Make the output saturate
     if (rval > _outmax)

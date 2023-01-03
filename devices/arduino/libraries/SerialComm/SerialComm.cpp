@@ -6,13 +6,12 @@
 //
 #include "SerialComm.h"
 
-
 SerialComm::SerialComm(){
 }
 SerialComm::~SerialComm(){
 }
 
-bool SerialComm::process(PIController piController[], Fast_IO_Due &IO){
+bool SerialComm::process(PIController* piController){
     receive();
     uint8_t cn;
     switch(arg[0]){
@@ -20,7 +19,7 @@ bool SerialComm::process(PIController piController[], Fast_IO_Due &IO){
             receive(); 
             cn = arg[0];
             receive();
-            Serial.println(read(piController[cn], IO, arg[0]));
+            Serial.println(read(piController[cn], arg[0]));
             break;
         case WRITE:
             receive();
@@ -54,7 +53,7 @@ void SerialComm::toggleController(PIController &pi_controller, bool toggle){
     pi_controller.active = toggle;
 }
 
-uint32_t SerialComm::read(PIController &pi_controller, Fast_IO_Due &IO, char con){
+uint32_t SerialComm::read(PIController &pi_controller, char con){
     switch (con){
     case P:
         return pi_controller._p;
@@ -62,11 +61,6 @@ uint32_t SerialComm::read(PIController &pi_controller, Fast_IO_Due &IO, char con
         return pi_controller._i;
     case F:
         return pi_controller._hz;
-    case NORM:
-        return IO.IOnorm;
-    case _adc:
-        receive();
-        return med_anyadc(fast_atoi(arg));
     default:
         return 0;
     }
@@ -76,17 +70,15 @@ void SerialComm::write(PIController &pi_controller, Fast_IO_Due &IO, char con){
     receive();
     uint32_t value = fast_atoi(arg);
     switch (con){
-    case P:
-        pi_controller._p = value;
-        break;
-    case I:
-        pi_controller._i = value;
-        break;
-    case F:
-        pi_controller._hz = value;
-        break;
-    case _dac:
-        IO.write_dac(value);
+        case PROP:
+            pi_controller._p = value;
+            break;
+        case INT:
+            pi_controller._i = value;
+            break;
+        case FREQ:
+            pi_controller._hz = value;
+            break;
     }
 }
 
