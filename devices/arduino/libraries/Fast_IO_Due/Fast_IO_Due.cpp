@@ -82,6 +82,7 @@ bool Fast_IO_Due::calc_norm(size_t nc=10){
     * Read two input channels A0 und A1 'nc' number of times, add respective values up and store them in _UA0 and _UA1
     */
     uint16_t _UA0=0, _UA1=0;
+    uint16_t limit=600;
     for(uint8_t c=0; c<nc;c++){ 
         while(!ADC_ISR_EOC7);
         _UA0+=ADC->ADC_CDR[7];
@@ -92,11 +93,11 @@ bool Fast_IO_Due::calc_norm(size_t nc=10){
     * Calculate the control variable which equals: (_UA0 - _UA1)/(_UA0 + _UA1).
     * As the control variable IOnorm is an int and the calculation returnes a value between -1 and 1, the result is multiplied with 2047 to get a ~12-bit value.
     * A feature of this implementation is the inclusion of a sample-and-hold condition.
-    * If the sum of the voltages is high enough (> nc * 600) the function calculates the new value of the control variable and returns true.
+    * If the sum of the voltages is high enough (> nc * limit) the function calculates the new value of the control variable and returns true.
     * If this is not the case (else) the function returns false.
     * True and false can turn the controller on and off for one loop.
     */
-    if((_UA0+_UA1)>(nc*600)){ 
+    if((_UA0+_UA1)>(nc*limit)){ 
         IOnorm = (2047*(_UA0-_UA1))/(_UA0+_UA1);//norm*2047 (int16_t, so no decimal places) 2047 is chosen because of 12-bit dac output range (2*2047+1=4095~4096)
         return true;
     }

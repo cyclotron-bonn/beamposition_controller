@@ -5,23 +5,23 @@ from time import sleep
 
 class ArduinoController(ArduinoSerial):
     PARAM_SHIFT = 2**8
-    #Delimiters
-    ENABLE_delim = 'S' #set
-    DISABLE_delim = 'U' #unset
+    #commands
     READ_delim = 'R' #read
     WRITE_delim = 'W' #write
-    CHECK_delim = 'C' #check
     RESET_delim = 'X' #cross
-    ADC_delim = 'A' #adc
-    DAC_delim = 'D' #dac
-    NORM_delim = 'N' #norm
+    #variables
+    con_P = 'P' #proportional
+    con_I = 'I' #integral
+    con_HZ = 'F' #frequency
+    con_HZ_BITS = 'B'
+    con_ADD = 'A'
+    con_ADCL = 'L'
+    con_ADCR = 'R'
+    con_ACT = 'O'
+    
+    #returns
+    CHECK_delim = 'C' #check
     ERR_delim = 'E' #error
-    #Terminator
-    TERMI = '\n'
-    #Letters for constants
-    con_P = 'p' #proportional
-    con_I = 'i' #integral
-    con_HZ = 'f' #frequency
 
     def __init__(self, port = "/dev/cu.usbmodem14301", baudrate=115200, timeout=1., P=1, I=0, HZ=130000):
         super().__init__(port=port, baudrate=baudrate, timeout=timeout)
@@ -48,47 +48,6 @@ class ArduinoController(ArduinoSerial):
         """
         cmd = self.create_command(self.RESET_delim)
         self.write(cmd)
-    
-    def enable_controller(self, controller):
-        """enables given controller"""
-        cmd = self.create_command(self.ENABLE_delim, controller)
-        ans = self.query(cmd)
-        if ans == '':
-            raise RuntimeError("No answer received")
-        if ans == 'X':
-            raise ValueError("Given controller was not found")
-        if ans == 'C':
-            print("Controller enabled")
-    
-    def disable_controller(self, controller):
-        """enables given controller"""
-        cmd = self.create_command(self.DISABLE_delim, controller)
-        ans = self.query(cmd)
-        if ans == '':
-            raise RuntimeError("No answer received")
-        if ans == 'X':
-            raise ValueError("Given controller was not found")
-        if ans == 'C':
-            print("Controller disabled")
-    
-    def read_adc(self, adc):
-        cmd = self.create_command(self.READ_delim, self.ADC_delim, adc)
-        ans = self.query(cmd)
-        if ans == '':
-            raise RuntimeError("No answer received")
-        return ans
-    
-    def get_norm(self):
-        """gets the calculated norm from an arduino
-
-        Returns:
-            norm: as arduino can only answer unsigned ints, a negative norm results in the first bit of 32 bit return to be flipped\\
-                resulting in huge numbers. 2**32 is subtracted when norm is too great to solve this issue
-        """
-        norm = self._read_data(con = self.NORM_delim)
-        if norm > 5000:
-            norm-=2**32
-        return norm
 
     def get_values(self, adc0, adc1):
         try:
@@ -156,16 +115,89 @@ class ArduinoController(ArduinoSerial):
             output = int(input * self.PARAM_SHIFT)
             self._write_data(controller=controller, var=self.con_I, value=output)
 
+    @property
+    def active(self, controller):
+        """check if controller is active
+
+        Args:
+            controller (int): controller to be checked (0 to 3)
+
+        Returns:
+            bool: whether controller is active
+        """
+        return self._read_data(controller=controller, var = self.con_ACT)
+
+    @active.setter
+    def active(self, controller, value: bool):
+        """enable/disable a controller
+            enable: -> arduino will read its assigned adcs, calculate and set output to dac
+
+        Args:
+            controller (int): controller to be enabled/disabled (0 to 3)
+            value (bool): true: enable; false: disable
+        """
+        self._write_data(controller=controller, var = self.con_ACT, value = int(value))
+    
+    @property
+    def address(self, controller):
+        """sets the SPI/I2C address of the controllers dac
+
+        Args:
+            controller (int): controller (0 to 3)
+        """
+        self._read_data(controller=controller, var=self.con_ADD)
+        
+    @address.setter
+    def address(self, controller, value):
+        self._write_data(controller=controller, var=self.con_ADD, value=value)
+    
+    @property
+    def adc_left(self, controller):
+        """sets the left (or upper) adc channel
+
+        Args:
+            controller (int): controller (0 to 3)
+        """
+        self._read_data(controller=controller, var=self.con_ADCL)
+        
+    @adc_left.setter
+    def adc_left(self, controller, value):
+        self._write_data(controller=controller, var=self.con_ADCL, value=value)
+    
+    @property
+    def adc_right(self, controller):
+        """sets the right (or lower) adc channel
+
+        Args:
+            controller (int): controller (0 to 3)
+        """
+        self._read_data(controller=controller, var=self.con_ADCR)
+        
+    @adc_right.setter
+    def adc_right(self, controller, value):
+        self._write_data(controller=controller, var=self.con_ADCR, value=value)
+    
+    def check_controllers(self):
+        for i in range(4):
+            c = int(i)
+            c_act = self.active(c)
+            c_p = self.proportional(c) 
+            c_i = self.integral(c)
+            c_hz = self.frequency(c)
+            c_add = self.address(c)
+            c_adcl = self.adc_left(c)
+            c_adcr = self.adc_right(c)
+            if c_act:
+                print("Controller {} is enabled")
+            else: print("Controller {} is disabled")
+            print("P={}, I={}, Freq={}, DAC-Address={}, ADCL={}, ADCR={}".format(c_p,c_i,c_hz,c_add,c_adcl,c_adcr))
+            
     def _read_data(self, controller, var):
         """reads data/constants from the arduino.  <con> determines which
 
         Args:
-            con (char): the constant to be read.\\
-            p -> proportional;
-            i -> integral;
-            d -> differential;
-            f -> frequecy;
-
+            controller (int): the controller from which the variable is to be read
+            var (char): the variable to be read.
         Returns:
             [float]: constant
         """
@@ -185,12 +217,8 @@ class ArduinoController(ArduinoSerial):
     def _write_data(self, controller, var, value):
         """writes data to arduino
         Args:
-            con (char): constant to be set\\
-            p -> proportional;
-            i -> integral;
-            d -> differential;
-            f -> frequecy;
-            D -> DAC;
+            controller (int): controller on which variable is to be changed
+            var (char): variable to be set\\
             value (float): new value
         """
         cmd = self.create_command(self.WRITE_delim, controller, var, value)

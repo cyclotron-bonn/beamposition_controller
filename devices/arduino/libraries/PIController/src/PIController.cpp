@@ -2,18 +2,6 @@
 #include <Arduino.h>
 
 
-IOController::~IOController(){
-}
-
-void IOController::setup(uint8_t ADD, uint8_t A0, uint8_t A1){
-    DAC_ADDRESS = ADD;
-    ADC_A0 = A0;
-    ADC_A1 = A1;
-}
-
-
-PIController::~PIController() {
-}
 
 void PIController::clear() {
     _sum = 0;
@@ -22,6 +10,7 @@ void PIController::clear() {
 
 bool PIController::setCoefficients(float kp, float ki, uint32_t hz) {
     _hz=hz;
+    _hz_bits = hzToBits(hz);
     _p = floatToParam(kp);
     _i = floatToParam(ki);
     return ! _cfg_err;
@@ -59,8 +48,12 @@ bool PIController::setOutputRange(int16_t min, int16_t max)
     return ! _cfg_err;
 }
 
-bool PIController::configure(float kp, float ki, float hz, int bits) {
+bool PIController::configure(float kp, float ki, uint32_t hz, int bits, uint8_t ADD, uint8_t AL, uint8_t AR) {
     clear();
+    active=true;
+    ADDRESS=ADD;
+    ADC_L=AL;
+    ADC_R=AR;
     setCoefficients(kp, ki, hz);
     setOutputConfig(bits);
     return ! _cfg_err;
@@ -79,6 +72,21 @@ uint32_t PIController::floatToParam(float in) {
     }
     
     return param;
+}
+
+uint8_t PIController::hzToBits(uint32_t hz){
+    uint32_t v = hz;
+    uint8_t l;
+    for(uint8_t i=1;i<32,i++){
+        if(pow(2,i)>v){
+            if(pow(2,i-1)-v<v-pow(2,i)){
+                return i-1;
+            }
+            else{return i;}
+        }
+    }
+    setCfgError();
+    return 0;
 }
 
 int16_t PIController::step(int16_t sp, int16_t fb) {
@@ -102,7 +110,7 @@ int16_t PIController::step(int16_t sp, int16_t fb) {
             _sum = INTEG_MIN;
         
         // int32
-        I = int64_t(_sum)/uint32_t(_hz);
+        I = int64_t(_sum)>>_hz_bits;
         //Serial.println(I);
     }
     

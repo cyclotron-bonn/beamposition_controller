@@ -25,7 +25,7 @@ bool SerialComm::process(PIController* piController){
             receive();
             cn = arg[0];
             receive();
-            write(piController[cn], IO, arg[0]); //set value
+            write(piController[cn], arg[0]); //set value
             break;
         case EN:
             receive();
@@ -55,18 +55,20 @@ void SerialComm::toggleController(PIController &pi_controller, bool toggle){
 
 uint32_t SerialComm::read(PIController &pi_controller, char con){
     switch (con){
-    case P:
+    case PROP:
         return pi_controller._p;
-    case I:
+    case INT:
         return pi_controller._i;
-    case F:
+    case FREQ:
         return pi_controller._hz;
+    case FREQ_BITS:
+        return pi_controller._hz_bits;
     default:
         return 0;
     }
 }
 
-void SerialComm::write(PIController &pi_controller, Fast_IO_Due &IO, char con){
+void SerialComm::write(PIController &pi_controller, char con){
     receive();
     uint32_t value = fast_atoi(arg);
     switch (con){
@@ -78,7 +80,14 @@ void SerialComm::write(PIController &pi_controller, Fast_IO_Due &IO, char con){
             break;
         case FREQ:
             pi_controller._hz = value;
+            pi_controller._hz_bits = pi_controller.hzToBits(value)
             break;
+        case ADDR:
+            pi_controller.ADDRESS = value;
+        case ADCL:
+            pi_controller.ADC_L = value;
+        case ADCR:
+            pi_controller.ADC_R = value;
     }
 }
 

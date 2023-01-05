@@ -8,43 +8,22 @@
 //PARAM_MAX: 1 shifted PARAM_BITS left -> 1 0000 0000 0000 0000 -> -1 -> 1111 1111 1111 1111 -> shifted PARAM_SHiFT right -> 1111 1111
 //maximum of float value (255) -> is multiplied with PARAM_MULT to have a maximum of 1111 1111 0000 0000 = 65280 (2^16 = 65536)
 #define PARAM_MAX    (((0x1ULL << PARAM_BITS)-1) >> PARAM_SHIFT)
-//PARAM_MULT: 1 shifted PARAM_BITS left -> 1 0000 0000 0000 0000 -> shifted PARAM_BITS-PARAM_SHIFT=8 right -> 1 0000 0000
+//PARAM_MULT: 1 shifted PARAM_BITS left -> 1 0000 0000 0000 0000 -> shifted PARAM_BITS-PARAM_SHIFT=8 right -> 1 0000 0000 is 2^9
 #define PARAM_MULT   (((0x1ULL << PARAM_BITS)) >> (PARAM_BITS - PARAM_SHIFT))
 
-/*
-A class containing the IO-information
-*/
-class IOController{
-public:
-    IOController(){
-
-    }
-
-    IOController(uint8_t ADD, uint8_t A0, uint8_t A1){
-        setup(ADD, A0, A1);
-    }
-
-    ~IOController();
-    bool setup(uint8_t ADD, uint8_t A0, uint8_t A1);
-
-    uint8_t DAC_ADDRESS;
-    uint8_t ADC_A0;
-    uint8_t ADC_A1;
-}
 
 /*
  A fixed point PID controller with a 32-bit internal calculation pipeline.
  */
-class PIController:public IOController{
+class PIController{
     
 public:
     PIController(){
         clear();
     }
     
-    PIController(float kp, float ki, float hz, int bits=16, uint8_t ADD, uint8_t A0, uint8_t A1){
-        IOController io(ADD, A0, A1);
-        configure(kp, ki, hz, bits);
+    PIController(float kp, float ki, float hz, int bits=16, uint8_t ADD, uint8_t AL, uint8_t AR){
+        configure(kp, ki, hz, bits, ADD, AL, AR);
     }
     
     ~PIController();
@@ -55,16 +34,22 @@ public:
     void clear();
     bool configure(float kp, float ki, float hz, int bits=16);
     int16_t step(int16_t sp, int16_t fb);
-    
+    uint8_t hzToBits(uint32_t hz)
+
     bool err() {
         return _cfg_err;
     }
     
     uint32_t _p;
     uint32_t _i;
-    int32_t _hz;
+    uint32_t _hz;
+    uint8_t _hz_bits;
 
+    //DAC-address, which ADCs to use and wether the controller is active
     bool active;
+    uint8_t ADDRESS;
+    uint8_t ADC_L;
+    uint8_t ADC_R;
 
 private:
     uint32_t floatToParam(float);

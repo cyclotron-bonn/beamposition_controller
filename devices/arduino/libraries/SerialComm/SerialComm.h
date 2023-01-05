@@ -21,7 +21,7 @@ public:
     void receive(void);
     
 private:
-    //general comm constants
+    //general constants
     const static size_t BUF_SIZE = 16;
     char arg[BUF_SIZE];
     const char _DELIM = ':';
@@ -30,21 +30,21 @@ private:
     const char TER = '\r';
     const char _NULL_TERM = '\0';
 
-    //which command is meant
+    //commands
     static constexpr char READ = 'R';
     static constexpr char WRITE = 'W';
     static constexpr char RESET = 'X';
-    static constexpr char EN = 'S';
-    static constexpr char DIS = 'U';
-    static constexpr char ADDR = 'L';
 
-    //what is asked
+    //variables
     static constexpr char PROP = 'P';
     static constexpr char INT = 'I';
     static constexpr char FREQ = 'F';
-    static constexpr char NORM = 'N';
-    static constexpr char _adc = 'A';
-    static constexpr char _dac = 'D';
+    static constexpr char FREQ_BITS = 'B';
+    static constexpr char ADDR = 'A';
+    static constexpr char ADCL = 'L';
+    static constexpr char ADCR = 'R';
+    static constexpr char ACT = 'O';
+
 
     //returns
     static constexpr char CHECK = 'C';
