@@ -1,7 +1,6 @@
 //
 //  SerialComm.h
 //  
-//
 //  Created by Béla Knopp on 24.01.22.
 //
 
@@ -45,15 +44,14 @@ private:
     static constexpr char ADCR = 'R';
     static constexpr char ACT = 'O';
 
-
     //returns
     static constexpr char CHECK = 'C';
     static constexpr char ERR = 'E';
     
 private:
     uint32_t fast_atoi(char*);  
-    void write(PIController&);
-    uint32_t read(PIController&);
+    void write(PIController&, char);
+    uint32_t read(PIController&, char);
 };
 
 #endif /* SerialComm_h */
