@@ -6,17 +6,40 @@
 void PIController::clear() {
     _sum = 0;
     _cfg_err = false;
-} 
+}
+
+void PIController::configure(float kp, float ki, uint32_t hz, uint8_t ADD, uint8_t AL, uint8_t AR, uint8_t bits) {
+    //controlIO IO();
+    clear();
+    setCoefficients(kp, ki, hz);
+    setAddresses(ADD, AL, AR);
+    setOutputConfig(bits);
+}
+
+uint32_t PIController::getNorm(){
+    return calcNorm();
+}
+
+void PIController::setOutput(uint16_t output){
+    writeOutput(output);
+}
 
 bool PIController::setCoefficients(float kp, float ki, uint32_t hz) {
     _hz=hz;
-    _hz_bits = hzToBits(hz);
+    _hz_bits =hzToBits(hz);
     _p = floatToParam(kp);
     _i = floatToParam(ki);
+    active=true;
     return ! _cfg_err;
 }
 
-bool PIController::setOutputConfig(int bits) {
+void PIController::setAddresses(uint8_t ADD, uint8_t AL, uint8_t AR){
+    ADDRESS = ADD;
+    ADC_L = AL;
+    ADC_R = AR;
+}
+
+bool PIController::setOutputConfig(uint16_t bits) {
     // Set output bits
     if (bits > 16 || bits < 1) {
         setCfgErr();
@@ -48,17 +71,6 @@ bool PIController::setOutputRange(int16_t min, int16_t max)
     return ! _cfg_err;
 }
 
-bool PIController::configure(float kp, float ki, uint32_t hz, int bits, uint8_t ADD, uint8_t AL, uint8_t AR) {
-    clear();
-    active=true;
-    ADDRESS=ADD;
-    ADC_L=AL;
-    ADC_R=AR;
-    setCoefficients(kp, ki, hz);
-    setOutputConfig(bits);
-    return ! _cfg_err;
-}
-
 uint32_t PIController::floatToParam(float in) {
     if (in > PARAM_MAX || in < 0) {
         _cfg_err = true;
@@ -76,8 +88,7 @@ uint32_t PIController::floatToParam(float in) {
 
 uint8_t PIController::hzToBits(uint32_t hz){
     uint32_t v = hz;
-    uint8_t l;
-    for(uint8_t i=1;i<32,i++){
+    for(uint8_t i=1;i<32;i++){
         if(pow(2,i)>v){
             if(pow(2,i-1)-v<v-pow(2,i)){
                 return i-1;
@@ -85,8 +96,8 @@ uint8_t PIController::hzToBits(uint32_t hz){
             else{return i;}
         }
     }
-    setCfgError();
-    return 0;
+    setCfgErr();
+    return 1;
 }
 
 int16_t PIController::step(int16_t sp, int16_t fb) {

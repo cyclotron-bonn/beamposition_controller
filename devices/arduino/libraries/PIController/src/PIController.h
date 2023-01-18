@@ -2,6 +2,7 @@
 #define PIController_H
 
 #include <stdint.h>
+#include <controlIO.h>
 
 #define PARAM_SHIFT  8
 #define PARAM_BITS   16
@@ -15,26 +16,21 @@
 /*
  A fixed point PID controller with a 32-bit internal calculation pipeline.
  */
-class PIController{
+class PIController:public controlIO{
     
 public:
-    PIController(){
-        clear();
-    }
-    
-    PIController(float kp, float ki, float hz, int bits=16, uint8_t ADD, uint8_t AL, uint8_t AR){
-        configure(kp, ki, hz, bits, ADD, AL, AR);
-    }
-    
-    ~PIController();
-    
     bool setCoefficients(float kp, float ki, uint32_t hz);
-    bool setOutputConfig(int bits);
+    void setAddresses(uint8_t ADD, uint8_t AL, uint8_t AR);
+    bool setOutputConfig(uint16_t bits);
     bool setOutputRange(int16_t min, int16_t max);
     void clear();
-    bool configure(float kp, float ki, float hz, int bits=16);
+    void configure(float, float, uint32_t, uint8_t, uint8_t, uint8_t, uint8_t);
+    
+    uint32_t getNorm();
+    void setOutput(uint16_t);
+
     int16_t step(int16_t sp, int16_t fb);
-    uint8_t hzToBits(uint32_t hz)
+    uint8_t hzToBits(uint32_t hz);
 
     bool err() {
         return _cfg_err;

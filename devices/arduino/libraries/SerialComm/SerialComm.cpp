@@ -27,18 +27,7 @@ bool SerialComm::process(PIController* piController){
             receive();
             write(piController[cn], arg[0]); //set value
             break;
-        case EN:
-            receive();
-            toggleController(piController[arg[0]], true);
-            Serial.println(CHECK);
-            break;
-        case DIS:
-            receive();
-            toggleController(piController[arg[0]], false);
-            Serial.println(CHECK);
-            break;
         case RESET:
-            NVIC_SystemReset();
             break;
         case CHECK:
             Serial.println(CHECK);
@@ -47,10 +36,6 @@ bool SerialComm::process(PIController* piController){
             return true;
     }
     return false;
-}
-
-void SerialComm::toggleController(PIController &pi_controller, bool toggle){
-    pi_controller.active = toggle;
 }
 
 uint32_t SerialComm::read(PIController &pi_controller, char con){
@@ -80,14 +65,19 @@ void SerialComm::write(PIController &pi_controller, char con){
             break;
         case FREQ:
             pi_controller._hz = value;
-            pi_controller._hz_bits = pi_controller.hzToBits(value)
+            pi_controller._hz_bits = pi_controller.hzToBits(value);
             break;
         case ADDR:
             pi_controller.ADDRESS = value;
-        case ADCL:
+        case cADC_L:
             pi_controller.ADC_L = value;
-        case ADCR:
+        case cADC_R:
             pi_controller.ADC_R = value;
+        case ACT:
+            if(value){
+                pi_controller.active=true;
+            }
+            else{pi_controller.active=false;}
     }
 }
 

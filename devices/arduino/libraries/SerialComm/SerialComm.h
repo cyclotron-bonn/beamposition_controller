@@ -1,15 +1,8 @@
-//
-//  SerialComm.h
-//  
-//  Created by Béla Knopp on 24.01.22.
-//
-
 #ifndef SerialComm_h
 #define SerialComm_h
 
 #include <Arduino.h>
 #include "PIController.h"
-#include "Fast_IO_Due.h"
 
 class SerialComm:public PIController{
 public:
@@ -40,8 +33,8 @@ private:
     static constexpr char FREQ = 'F';
     static constexpr char FREQ_BITS = 'B';
     static constexpr char ADDR = 'A';
-    static constexpr char ADCL = 'L';
-    static constexpr char ADCR = 'R';
+    static constexpr char cADC_L = 'L';
+    static constexpr char cADC_R = 'R';
     static constexpr char ACT = 'O';
 
     //returns
