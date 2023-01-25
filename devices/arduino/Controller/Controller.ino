@@ -37,10 +37,12 @@ void controller(){
     PIController temp=controllers[i];
     if(temp.active){
       norm = temp.getNorm();
+      Serial.println(norm);
       if(norm){
         output = temp.step(setpoint, 100);
       }
     }
+    Serial.println(output);
     //temp.setOutput(shift+output);
   }
 //  control = fastIO.calc_norm(5);

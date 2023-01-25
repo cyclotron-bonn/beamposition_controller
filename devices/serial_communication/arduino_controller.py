@@ -1,4 +1,3 @@
-from gzip import READ
 from arduino_serial import ArduinoSerial
 import logging
 from time import sleep
@@ -22,13 +21,17 @@ class ArduinoController(ArduinoSerial):
     #returns
     CHECK_delim = 'C' #check
     ERR_delim = 'E' #error
+    
+    #controller variables
+    controller_address = 0
 
-    def __init__(self, port = "/dev/cu.usbmodem14301", baudrate=115200, timeout=1., P=1, I=0, HZ=130000):
+    def __init__(self, port = "/dev/cu.usbmodem14301", baudrate=115200, timeout=1., P=1, I=0, HZ=130000, controller = 0):
         super().__init__(port=port, baudrate=baudrate, timeout=timeout)
         self.check_con()
         self.frequency(value = HZ)
         self.proportional(input = P)
         self.integral(input = I)
+        self.address = self.address
 
     def check_con(self):
         """checks if the arduino is responding
@@ -48,45 +51,31 @@ class ArduinoController(ArduinoSerial):
         """
         cmd = self.create_command(self.RESET_delim)
         self.write(cmd)
-
-    def get_values(self, adc0, adc1):
-        try:
-            while True:
-               print(self.read_adc(adc = adc0))
-               print(self.read_adc(adc = adc1))
-               print(self.get_norm())
-               print("")
-               sleep(0.5)
-        except KeyboardInterrupt:
-            pass
     
-    @property
-    def frequency(self, controller):
-        """gets frequency used by PID-Controller. The value does not represent the actual sampling rate
+    def frequency(self):
+        """gets frequency used by PID-self.address. The value does not represent the actual sampling rate
         """
-        return self._read_data(controller=controller, var = self.con_HZ)
+        return self._read_data( var = self.con_HZ)
 
-    @frequency.setter
-    def frequency(self, controller, value):
+    def frequency(self,value):
         """Sets the frequency used by PID-Controller. This does not change the actual sampling rate.
-            Actual value is estimated to be around 130kHz.
+            Real value is estimated to be around 130kHz.
         Args:
             value (int): new frequency
         """
         if(value > 0):
-            self._write_data(controller=controller, var = self.con_HZ, value = int(value))
+            self._write_data(var = self.con_HZ, value = int(value))
         else:
             raise ValueError("Frequency must be greater than 0")
 
-    @property
-    def proportional(self, controller):
-        """gets P-value of PID-controller
+    
+    def proportional(self):
+        """gets P-value of PID-self.address
         """
-        return self._read_data(controller=controller, var = self.con_P)/self.PARAM_SHIFT
+        return self._read_data(var = self.con_P)/self.PARAM_SHIFT
 
-    @proportional.setter
-    def prop(self, controller, input):
-        """sets P-value of PID controller
+    def proportional(self, input):
+        """sets P-value of PID self.address
 
         Args:
             value (float): new value
@@ -99,85 +88,74 @@ class ArduinoController(ArduinoSerial):
                 raise ValueError("PID-constants must be smaller than "+ str(self.PARAM_SHIFT) + " and greater or equal to 0")
         else:
             output = int(input * self.PARAM_SHIFT)
-            self._write_data(controller=controller, var = self.con_P, value = output)
+            self._write_data(var = self.con_P, value = output)
 
-    @property
-    def integral(self, controller):
-        """gets I-value of PID-controller
+    
+    def integral(self):
+        """gets I-value of PID-self.address
         """
-        return self._read_data(controller=controller, var = self.con_I)/self.PARAM_SHIFT
+        return self._read_data(var = self.con_I)/self.PARAM_SHIFT
 
-    @integral.setter
-    def integral(self, controller, input):
+    def integral(self, input):
         if (input > self.PARAM_SHIFT or input < 0):
                 raise ValueError("PID-constants must be smaller than "+ str(self.PARAM_SHIFT) + " and greater or equal to 0")
         else:
             output = int(input * self.PARAM_SHIFT)
-            self._write_data(controller=controller, var=self.con_I, value=output)
+            self._write_data(var=self.con_I, value=output)
 
-    @property
-    def active(self, controller):
+    
+    def active(self):
         """check if controller is active
-
-        Args:
-            controller (int): controller to be checked (0 to 3)
-
         Returns:
-            bool: whether controller is active
+            bool: whether self.address is active
         """
-        return self._read_data(controller=controller, var = self.con_ACT)
+        return self._read_data(var = self.con_ACT)
 
-    @active.setter
-    def active(self, controller, value: bool):
-        """enable/disable a controller
+    def active(self, value: bool):
+        """enable/disable the controller
             enable: -> arduino will read its assigned adcs, calculate and set output to dac
 
         Args:
-            controller (int): controller to be enabled/disabled (0 to 3)
             value (bool): true: enable; false: disable
         """
-        self._write_data(controller=controller, var = self.con_ACT, value = int(value))
+        self._write_data(var = self.con_ACT, value = int(value))
     
-    @property
-    def address(self, controller):
-        """sets the SPI/I2C address of the controllers dac
+    
+    def address(self):
+        """sets the SPI/I2C address of the self.addresss dac
 
         Args:
-            controller (int): controller (0 to 3)
+            self.address (int): self.address (0 to 3)
         """
-        self._read_data(controller=controller, var=self.con_ADD)
+        self._read_data(var=self.con_ADD)
         
-    @address.setter
-    def address(self, controller, value):
-        self._write_data(controller=controller, var=self.con_ADD, value=value)
+    def address(self, value):
+        self._write_data(var=self.con_ADD, value=value)
     
-    @property
-    def adc_left(self, controller):
+    
+    def adc_left(self):
         """sets the left (or upper) adc channel
 
         Args:
-            controller (int): controller (0 to 3)
+            self.address (int): self.address (0 to 3)
         """
-        self._read_data(controller=controller, var=self.con_ADCL)
+        self._read_data(var=self.con_ADCL)
         
-    @adc_left.setter
-    def adc_left(self, controller, value):
-        self._write_data(controller=controller, var=self.con_ADCL, value=value)
+    def adc_left(self, value):
+        self._write_data(var=self.con_ADCL, value=value)
     
-    @property
-    def adc_right(self, controller):
+    def adc_right(self):
         """sets the right (or lower) adc channel
 
         Args:
-            controller (int): controller (0 to 3)
+            self.address (int): self.address (0 to 3)
         """
-        self._read_data(controller=controller, var=self.con_ADCR)
+        self._read_data(var=self.con_ADCR)
         
-    @adc_right.setter
-    def adc_right(self, controller, value):
-        self._write_data(controller=controller, var=self.con_ADCR, value=value)
+    def adc_right(self, value):
+        self._write_data(var=self.con_ADCR, value=value)
     
-    def check_controllers(self):
+    def check_controller(self):
         for i in range(4):
             c = int(i)
             c_act = self.active(c)
@@ -188,20 +166,19 @@ class ArduinoController(ArduinoSerial):
             c_adcl = self.adc_left(c)
             c_adcr = self.adc_right(c)
             if c_act:
-                print("Controller {} is enabled")
-            else: print("Controller {} is disabled")
+                print("self.address {} is enabled")
+            else: print("self.address {} is disabled")
             print("P={}, I={}, Freq={}, DAC-Address={}, ADCL={}, ADCR={}".format(c_p,c_i,c_hz,c_add,c_adcl,c_adcr))
-            
-    def _read_data(self, controller, var):
+    
+    def _read_data(self, var):
         """reads data/constants from the arduino.  <con> determines which
 
         Args:
-            controller (int): the controller from which the variable is to be read
             var (char): the variable to be read.
         Returns:
             [float]: constant
         """
-        cmd = self.create_command(self.READ_delim, controller, var)
+        cmd = self.create_command(self.READ_delim, self.controller_address, var)
         ans = self.query(cmd)
         if ans == '':
            raise RuntimeError("No answer received")
@@ -214,14 +191,13 @@ class ArduinoController(ArduinoSerial):
         self.reset_buffers()
         return value
     
-    def _write_data(self, controller, var, value):
+    def _write_data(self, var, value):
         """writes data to arduino
         Args:
-            controller (int): controller on which variable is to be changed
             var (char): variable to be set\\
             value (float): new value
         """
-        cmd = self.create_command(self.WRITE_delim, controller, var, value)
+        cmd = self.create_command(self.WRITE_delim, self.controller_address, var, value)
         self.write(cmd)
 
     

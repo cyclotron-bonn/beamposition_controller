@@ -17,7 +17,7 @@ void PIController::configure(float kp, float ki, uint32_t hz, uint8_t ADD, uint8
 }
 
 uint32_t PIController::getNorm(){
-    return calcNorm();
+    return calcNorm(ADC_L, ADC_R);
 }
 
 void PIController::setOutput(uint16_t output){

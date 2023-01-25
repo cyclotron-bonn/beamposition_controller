@@ -14,9 +14,9 @@ public:
     controlIO();
     ~controlIO();
     uint16_t readInput(uint8_t);
-    int16_t calcNorm();
+    int16_t calcNorm(uint8_t, uint8_t);
     void writeOutput(uint16_t); //write 12-bit value to dac
-    uint16_t analogRead(uint16_t);
+    uint16_t analogRead(uint8_t);
     
     int32_t IOnorm;
 private:
