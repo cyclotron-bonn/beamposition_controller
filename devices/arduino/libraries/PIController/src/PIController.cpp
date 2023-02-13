@@ -1,23 +1,23 @@
 #include "PIController.h"
 #include <Arduino.h>
 
-
+uint32_t controlFrequency; //frequency of controlling
+uint32_t controlDelayMicro; //fitting delay in microseconds
 
 void PIController::clear() {
     _sum = 0;
     _cfg_err = false;
 }
 
-void PIController::configure(float kp, float ki, uint32_t hz, uint8_t AL, uint8_t AR, uint8_t bits) {
+void PIController::configure(float kp, float ki, uint8_t AL, uint8_t AR, uint8_t bits) {
     //controlIO IO();
     clear();
-    setCoefficients(kp, ki, hz);
+    setCoefficients(kp, ki);
     setAddresses(AL, AR);
     setOutputConfig(bits);
 }
 
-bool PIController::setCoefficients(float kp, float ki, uint32_t hz) {
-    _hz=hz;
+bool PIController::setCoefficients(float kp, float ki) {
     _p = floatToParam(kp);
     _i = floatToParam(ki);
     active=true;
@@ -56,8 +56,8 @@ bool PIController::setOutputRange(int16_t min, int16_t max)
     }
     _outmin = int16_t(min);
     _outmax = int16_t(max);
-    INTEG_MAX = (int32_t(_hz) * int16_t(_outmax)*PARAM_MULT)-1;
-    INTEG_MIN = (int32_t(_hz) * int16_t(_outmin)*PARAM_MULT)+1;
+    INTEG_MAX = (int32_t(controlFrequency) * int16_t(_outmax)*PARAM_MULT)-1;
+    INTEG_MIN = (int32_t(controlFrequency) * int16_t(_outmin)*PARAM_MULT)+1;
     return ! _cfg_err;
 }
 
@@ -66,7 +66,7 @@ uint32_t PIController::floatToParam(float in) {
         _cfg_err = true;
         return 0;
     }
-    
+
     uint32_t param = PARAM_MULT * in;
     
     if (in != 0 && param == 0) {
@@ -75,6 +75,16 @@ uint32_t PIController::floatToParam(float in) {
     }
     
     return param;
+}
+
+void PIController::setDelay(uint32_t controlFrequency){
+    if (controlFrequency>0){
+        controlDelayMicro = uint32_t(1000000/controlFrequency);
+    }
+    else{
+        controlDelayMicro=0;
+        setCfgErr();
+    }
 }
 
 int16_t PIController::step(int16_t sp, int16_t fb) {
@@ -98,7 +108,7 @@ int16_t PIController::step(int16_t sp, int16_t fb) {
             _sum = INTEG_MIN;
         
         // int32
-        I = int64_t(_sum)/_hz;
+        I = int64_t(_sum)/controlFrequency;
         //Serial.println(I);
     }
     

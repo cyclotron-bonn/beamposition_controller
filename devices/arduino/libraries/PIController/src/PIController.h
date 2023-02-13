@@ -15,16 +15,20 @@
 /*
  A fixed point PID controller with a 32-bit internal calculation pipeline.
  */
+
+extern uint32_t controlFrequency; //frequency of controlling
+extern uint32_t controlDelayMicro;
+
 class PIController{
     
 public:
-    bool setCoefficients(float kp, float ki, uint32_t hz);
+    bool setCoefficients(float kp, float ki);
     void setAddresses(uint8_t AL, uint8_t AR);
     bool setOutputConfig(uint16_t bits);
     bool setOutputRange(int16_t min, int16_t max);
     void clear();
-    void configure(float, float, uint32_t, uint8_t, uint8_t, uint8_t);
-    
+    void configure(float, float, uint8_t, uint8_t, uint8_t);
+    void setDelay(uint32_t);
 
     int16_t step(int16_t sp, int16_t fb);
 
@@ -34,7 +38,6 @@ public:
     
     uint32_t _p;
     uint32_t _i;
-    uint32_t _hz;
 
     //DAC-address, which ADCs to use and wether the controller is active
     bool active;

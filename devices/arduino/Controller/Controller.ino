@@ -20,7 +20,7 @@ uint8_t adcr = 0;
 uint8_t bits = 12;
 void setupControllers() {
   for (uint8_t i = 0; i < 4; i++) {
-    controllers[i].configure(kp, ki, hz, adcl, adcr, bits);
+    controllers[i].configure(kp, ki, adcl, adcr, bits);
   }
 }
 
@@ -94,12 +94,10 @@ void controller() {
 }
 
 void loop() {
-  uint32_t start = micros();
-  for (uint32_t t = 0; t < 1000; t++) {
     if (Serial.available()) {
       SCom.process(controllers);
     }
+    uint32_t start = micros();
     controller();
-  }
-  Serial.println(micros() - start);
+    while(micros()-start<controlDelayMicro);
 }

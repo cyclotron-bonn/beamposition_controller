@@ -45,7 +45,7 @@ uint32_t SerialComm::read(PIController &pi_controller, char con){
     case INT:
         return pi_controller._i;
     case FREQ:
-        return pi_controller._hz;
+        return controlFrequency;
     default:
         return 0;
     }
@@ -62,7 +62,8 @@ void SerialComm::write(PIController &pi_controller, char con){
             pi_controller._i = value;
             break;
         case FREQ:
-            pi_controller._hz = value;
+            controlFrequency = value;
+            pi_controller.setDelay(controlFrequency);
             break;
         case cADC_L:
             pi_controller.ADC_L = uint8_t(value);
