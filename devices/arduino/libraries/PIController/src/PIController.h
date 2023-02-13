@@ -2,7 +2,6 @@
 #define PIController_H
 
 #include <stdint.h>
-#include <controlIO.h>
 
 #define PARAM_SHIFT  8
 #define PARAM_BITS   16
@@ -10,27 +9,24 @@
 //maximum of float value (255) -> is multiplied with PARAM_MULT to have a maximum of 1111 1111 0000 0000 = 65280 (2^16 = 65536)
 #define PARAM_MAX    (((0x1ULL << PARAM_BITS)-1) >> PARAM_SHIFT)
 //PARAM_MULT: 1 shifted PARAM_BITS left -> 1 0000 0000 0000 0000 -> shifted PARAM_BITS-PARAM_SHIFT=8 right -> 1 0000 0000 is 2^9
-#define PARAM_MULT   (((0x1ULL << PARAM_BITS)) >> (PARAM_BITS - PARAM_SHIFT))
+#define PARAM_MULT  (((0x1ULL << PARAM_BITS)) >> (PARAM_BITS - PARAM_SHIFT))
 
 
 /*
  A fixed point PID controller with a 32-bit internal calculation pipeline.
  */
-class PIController:public controlIO{
+class PIController{
     
 public:
     bool setCoefficients(float kp, float ki, uint32_t hz);
-    void setAddresses(uint8_t ADD, uint8_t AL, uint8_t AR);
+    void setAddresses(uint8_t AL, uint8_t AR);
     bool setOutputConfig(uint16_t bits);
     bool setOutputRange(int16_t min, int16_t max);
     void clear();
-    void configure(float, float, uint32_t, uint8_t, uint8_t, uint8_t, uint8_t);
+    void configure(float, float, uint32_t, uint8_t, uint8_t, uint8_t);
     
-    uint32_t getNorm();
-    void setOutput(uint16_t);
 
     int16_t step(int16_t sp, int16_t fb);
-    uint8_t hzToBits(uint32_t hz);
 
     bool err() {
         return _cfg_err;
@@ -39,11 +35,9 @@ public:
     uint32_t _p;
     uint32_t _i;
     uint32_t _hz;
-    uint8_t _hz_bits;
 
     //DAC-address, which ADCs to use and wether the controller is active
     bool active;
-    uint8_t ADDRESS;
     uint8_t ADC_L;
     uint8_t ADC_R;
 

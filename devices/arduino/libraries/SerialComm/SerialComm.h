@@ -31,8 +31,6 @@ private:
     static constexpr char PROP = 'P';
     static constexpr char INT = 'I';
     static constexpr char FREQ = 'F';
-    static constexpr char FREQ_BITS = 'B';
-    static constexpr char ADDR = 'A';
     static constexpr char cADC_L = 'L';
     static constexpr char cADC_R = 'R';
     static constexpr char ACT = 'O';

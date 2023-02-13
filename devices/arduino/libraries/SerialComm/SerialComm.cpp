@@ -46,8 +46,6 @@ uint32_t SerialComm::read(PIController &pi_controller, char con){
         return pi_controller._i;
     case FREQ:
         return pi_controller._hz;
-    case FREQ_BITS:
-        return pi_controller._hz_bits;
     default:
         return 0;
     }
@@ -65,19 +63,16 @@ void SerialComm::write(PIController &pi_controller, char con){
             break;
         case FREQ:
             pi_controller._hz = value;
-            pi_controller._hz_bits = pi_controller.hzToBits(value);
             break;
-        case ADDR:
-            pi_controller.ADDRESS = value;
         case cADC_L:
-            pi_controller.ADC_L = value;
+            pi_controller.ADC_L = uint8_t(value);
+            break;
         case cADC_R:
-            pi_controller.ADC_R = value;
+            pi_controller.ADC_R = uint8_t(value);
+            break;
         case ACT:
-            if(value){
-                pi_controller.active=true;
-            }
-            else{pi_controller.active=false;}
+            pi_controller.active = (value!=0);
+            break;
     }
 }
 

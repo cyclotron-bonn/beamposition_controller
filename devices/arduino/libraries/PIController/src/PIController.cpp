@@ -8,33 +8,23 @@ void PIController::clear() {
     _cfg_err = false;
 }
 
-void PIController::configure(float kp, float ki, uint32_t hz, uint8_t ADD, uint8_t AL, uint8_t AR, uint8_t bits) {
+void PIController::configure(float kp, float ki, uint32_t hz, uint8_t AL, uint8_t AR, uint8_t bits) {
     //controlIO IO();
     clear();
     setCoefficients(kp, ki, hz);
-    setAddresses(ADD, AL, AR);
+    setAddresses(AL, AR);
     setOutputConfig(bits);
-}
-
-uint32_t PIController::getNorm(){
-    return calcNorm(ADC_L, ADC_R);
-}
-
-void PIController::setOutput(uint16_t output){
-    writeOutput(output);
 }
 
 bool PIController::setCoefficients(float kp, float ki, uint32_t hz) {
     _hz=hz;
-    _hz_bits =hzToBits(hz);
     _p = floatToParam(kp);
     _i = floatToParam(ki);
     active=true;
     return ! _cfg_err;
 }
 
-void PIController::setAddresses(uint8_t ADD, uint8_t AL, uint8_t AR){
-    ADDRESS = ADD;
+void PIController::setAddresses(uint8_t AL, uint8_t AR){
     ADC_L = AL;
     ADC_R = AR;
 }
@@ -76,7 +66,8 @@ uint32_t PIController::floatToParam(float in) {
         _cfg_err = true;
         return 0;
     }
-    uint32_t param = in * PARAM_MULT;
+    
+    uint32_t param = PARAM_MULT * in;
     
     if (in != 0 && param == 0) {
         _cfg_err = true;
@@ -84,20 +75,6 @@ uint32_t PIController::floatToParam(float in) {
     }
     
     return param;
-}
-
-uint8_t PIController::hzToBits(uint32_t hz){
-    uint32_t v = hz;
-    for(uint8_t i=1;i<32;i++){
-        if(pow(2,i)>v){
-            if(pow(2,i-1)-v<v-pow(2,i)){
-                return i-1;
-            }
-            else{return i;}
-        }
-    }
-    setCfgErr();
-    return 1;
 }
 
 int16_t PIController::step(int16_t sp, int16_t fb) {
@@ -121,7 +98,7 @@ int16_t PIController::step(int16_t sp, int16_t fb) {
             _sum = INTEG_MIN;
         
         // int32
-        I = int64_t(_sum)>>_hz_bits;
+        I = int64_t(_sum)/_hz;
         //Serial.println(I);
     }
     
@@ -139,6 +116,7 @@ int16_t PIController::step(int16_t sp, int16_t fb) {
     
     return rval;
 }
+
 
 void PIController::setCfgErr() {
     _cfg_err = true;

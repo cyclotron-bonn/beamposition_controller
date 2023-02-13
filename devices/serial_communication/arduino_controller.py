@@ -1,6 +1,5 @@
 from arduino_serial import ArduinoSerial
 import logging
-from time import sleep
 
 class ArduinoController(ArduinoSerial):
     PARAM_SHIFT = 2**8
@@ -156,19 +155,17 @@ class ArduinoController(ArduinoSerial):
         self._write_data(var=self.con_ADCR, value=value)
     
     def check_controller(self):
-        for i in range(4):
-            c = int(i)
-            c_act = self.active(c)
-            c_p = self.proportional(c) 
-            c_i = self.integral(c)
-            c_hz = self.frequency(c)
-            c_add = self.address(c)
-            c_adcl = self.adc_left(c)
-            c_adcr = self.adc_right(c)
-            if c_act:
-                print("self.address {} is enabled")
-            else: print("self.address {} is disabled")
-            print("P={}, I={}, Freq={}, DAC-Address={}, ADCL={}, ADCR={}".format(c_p,c_i,c_hz,c_add,c_adcl,c_adcr))
+        c_act = self.active()
+        c_p = self.proportional() 
+        c_i = self.integral()
+        c_hz = self.frequency()
+        c_add = self.address()
+        c_adcl = self.adc_left()
+        c_adcr = self.adc_right()
+        if c_act:
+            print("self.address {} is enabled")
+        else: print("self.address {} is disabled")
+        print("P={}, I={}, Freq={}, DAC-Address={}, ADCL={}, ADCR={}".format(c_p,c_i,c_hz,c_add,c_adcl,c_adcr))
     
     def _read_data(self, var):
         """reads data/constants from the arduino.  <con> determines which
