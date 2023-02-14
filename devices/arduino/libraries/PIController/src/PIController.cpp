@@ -9,11 +9,11 @@ void PIController::clear() {
     _cfg_err = false;
 }
 
-void PIController::configure(float kp, float ki, uint8_t AL, uint8_t AR, uint8_t bits) {
+void PIController::configure(float kp, float ki, uint8_t AL, uint8_t AR, uint8_t DA, uint8_t bits) {
     //controlIO IO();
     clear();
     setCoefficients(kp, ki);
-    setAddresses(AL, AR);
+    setAddresses(AL, AR, DA);
     setOutputConfig(bits);
 }
 
@@ -24,9 +24,10 @@ bool PIController::setCoefficients(float kp, float ki) {
     return ! _cfg_err;
 }
 
-void PIController::setAddresses(uint8_t AL, uint8_t AR){
+void PIController::setAddresses(uint8_t AL, uint8_t AR, uint8_t DA){
     ADC_L = AL;
     ADC_R = AR;
+    DAC = DA;
 }
 
 bool PIController::setOutputConfig(uint16_t bits) {

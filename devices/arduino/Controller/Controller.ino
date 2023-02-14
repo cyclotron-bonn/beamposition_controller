@@ -9,18 +9,18 @@ const int DSEL_DAC = 5;
 
 SerialComm SCom;
 
-//Allocate space for 4 instances acting as seperate controllers
-PIController controllers[4];
+//Allocate space for 'n_controllers' instances acting as seperate controllers (default = 4)
+const static size_t n_controllers = 4;
+PIController controllers[n_controllers];
 
 float kp = 1;
-float ki = 1;
-float hz = 100;
+float ki = 0;
 uint8_t adcl = 0;
 uint8_t adcr = 0;
 uint8_t bits = 12;
 void setupControllers() {
-  for (uint8_t i = 0; i < 4; i++) {
-    controllers[i].configure(kp, ki, adcl, adcr, bits);
+  for (size_t i = 0; i < n_controllers; i++) {
+    controllers[i].configure(kp, ki, 2*i, 2*i+1, i, bits);
   }
 }
 
@@ -78,18 +78,18 @@ int16_t calcNorm(int32_t L, int32_t R) {
 
 int32_t L, R, N;
 void controller() {
-  for (uint8_t i = 0; i < 4; i++) {
+  for (uint8_t i = 0; i < n_controllers; i++) {
     PIController temp = controllers[i];
     if (temp.active) {
       L = readADC(temp.ADC_L);
       R = readADC(temp.ADC_R);
       N = calcNorm(L, R);
       if (N) {
-        output = temp.step(setpoint, norm);
+        output = temp.step(setpoint, N);
       }
     }
+    writeDAC(temp.DAC, output);
     Serial.println(output);
-    //temp.setOutput(shift+output);
   }
 }
 

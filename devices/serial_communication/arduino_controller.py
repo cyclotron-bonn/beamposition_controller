@@ -11,10 +11,6 @@ class ArduinoController(ArduinoSerial):
     con_P = 'P' #proportional
     con_I = 'I' #integral
     con_HZ = 'F' #frequency
-    con_HZ_BITS = 'B'
-    con_ADD = 'A'
-    con_ADCL = 'L'
-    con_ADCR = 'R'
     con_ACT = 'O'
     
     #returns
@@ -119,53 +115,15 @@ class ArduinoController(ArduinoSerial):
         """
         self._write_data(var = self.con_ACT, value = int(value))
     
-    
-    def address(self):
-        """sets the SPI/I2C address of the self.addresss dac
-
-        Args:
-            self.address (int): self.address (0 to 3)
-        """
-        self._read_data(var=self.con_ADD)
-        
-    def address(self, value):
-        self._write_data(var=self.con_ADD, value=value)
-    
-    
-    def adc_left(self):
-        """sets the left (or upper) adc channel
-
-        Args:
-            self.address (int): self.address (0 to 3)
-        """
-        self._read_data(var=self.con_ADCL)
-        
-    def adc_left(self, value):
-        self._write_data(var=self.con_ADCL, value=value)
-    
-    def adc_right(self):
-        """sets the right (or lower) adc channel
-
-        Args:
-            self.address (int): self.address (0 to 3)
-        """
-        self._read_data(var=self.con_ADCR)
-        
-    def adc_right(self, value):
-        self._write_data(var=self.con_ADCR, value=value)
-    
     def check_controller(self):
         c_act = self.active()
         c_p = self.proportional() 
         c_i = self.integral()
         c_hz = self.frequency()
-        c_add = self.address()
-        c_adcl = self.adc_left()
-        c_adcr = self.adc_right()
         if c_act:
             print("self.address {} is enabled")
         else: print("self.address {} is disabled")
-        print("P={}, I={}, Freq={}, DAC-Address={}, ADCL={}, ADCR={}".format(c_p,c_i,c_hz,c_add,c_adcl,c_adcr))
+        print("P={}, I={}, Freq={}".format(c_p,c_i,c_hz))
     
     def _read_data(self, var):
         """reads data/constants from the arduino.  <con> determines which

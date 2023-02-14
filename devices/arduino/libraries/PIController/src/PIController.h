@@ -23,11 +23,11 @@ class PIController{
     
 public:
     bool setCoefficients(float kp, float ki);
-    void setAddresses(uint8_t AL, uint8_t AR);
+    void setAddresses(uint8_t AL, uint8_t AR, uint8_t DA);
     bool setOutputConfig(uint16_t bits);
     bool setOutputRange(int16_t min, int16_t max);
     void clear();
-    void configure(float, float, uint8_t, uint8_t, uint8_t);
+    void configure(float, float, uint8_t, uint8_t, uint8_t, uint8_t);
     void setDelay(uint32_t);
 
     int16_t step(int16_t sp, int16_t fb);
@@ -43,6 +43,7 @@ public:
     bool active;
     uint8_t ADC_L;
     uint8_t ADC_R;
+    uint8_t DAC;
 
 private:
     uint32_t floatToParam(float);

@@ -65,12 +65,6 @@ void SerialComm::write(PIController &pi_controller, char con){
             controlFrequency = value;
             pi_controller.setDelay(controlFrequency);
             break;
-        case cADC_L:
-            pi_controller.ADC_L = uint8_t(value);
-            break;
-        case cADC_R:
-            pi_controller.ADC_R = uint8_t(value);
-            break;
         case ACT:
             pi_controller.active = (value!=0);
             break;
