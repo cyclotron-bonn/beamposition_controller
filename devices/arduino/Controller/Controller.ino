@@ -9,8 +9,7 @@ const int DSEL_DAC = 5;
 
 SerialComm SCom;
 
-//Allocate space for 'n_controllers' instances acting as seperate controllers (default = 4)
-const static size_t n_controllers = 4;
+//Allocate space for 'n_controllers' instances acting as seperate controllers (default = 4, defined in globally in PIController.h)
 PIController controllers[n_controllers];
 
 float kp = 1;

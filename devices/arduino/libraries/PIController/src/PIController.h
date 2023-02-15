@@ -18,6 +18,7 @@
 
 extern uint32_t controlFrequency; //frequency of controlling
 extern uint32_t controlDelayMicro;
+const uint8_t n_controllers = 4; //amount of controllers default is 4, needed to prevent overflow error when changing variables in SerialComm
 
 class PIController{
     

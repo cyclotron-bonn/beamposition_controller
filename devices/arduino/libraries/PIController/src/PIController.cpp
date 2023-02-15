@@ -3,13 +3,14 @@
 
 uint32_t controlFrequency; //frequency of controlling
 uint32_t controlDelayMicro; //fitting delay in microseconds
+//const uint8_t controller_amount = 4;
 
 void PIController::clear() {
     _sum = 0;
     _cfg_err = false;
 }
 
-void PIController::configure(float kp, float ki, uint8_t AL, uint8_t AR, uint8_t DA, uint8_t bits) {
+void PIController::configure(float kp, float ki, uint8_t AL, uint8_t AR, uint8_t DA, uint8_t bits=16) {
     //controlIO IO();
     clear();
     setCoefficients(kp, ki);
@@ -90,7 +91,7 @@ void PIController::setDelay(uint32_t controlFrequency){
 
 int16_t PIController::step(int16_t sp, int16_t fb) {
     // int16 + int16 = int17
-    int16_t err = int16_t(sp) - int16_t(fb);
+    int16_t err = sp - fb;
     int32_t P = 0, I = 0;
     
     if (_p) {
@@ -109,12 +110,11 @@ int16_t PIController::step(int16_t sp, int16_t fb) {
             _sum = INTEG_MIN;
         
         // int32
-        I = int64_t(_sum)/controlFrequency;
-        //Serial.println(I);
+        I = int32_t(_sum/controlFrequency);
     }
     
     // int32 (P) + int32 (I)= int34
-    int32_t out = int32_t(P) + int32_t(I);
+    int32_t out = P + I;
     
     // Remove the integer scaling factor.
     int16_t rval = out>>PARAM_SHIFT;

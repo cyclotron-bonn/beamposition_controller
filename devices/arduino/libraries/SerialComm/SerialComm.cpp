@@ -18,12 +18,20 @@ bool SerialComm::process(PIController* piController){
         case READ:
             receive(); 
             cn = arg[0];
+            if(cn>=n_controllers){
+                Serial.println(ERR);
+                break;
+            }
             receive();
             Serial.println(read(piController[cn], arg[0]));
             break;
         case WRITE:
             receive();
             cn = arg[0];
+            if(cn>=n_controllers){
+                Serial.println(ERR);
+                break;
+            }
             receive();
             write(piController[cn], arg[0]); //set value
             break;
