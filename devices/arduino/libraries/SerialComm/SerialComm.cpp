@@ -13,27 +13,25 @@ SerialComm::~SerialComm(){
 
 bool SerialComm::process(PIController* piController){
     receive();
-    uint8_t cn;
-    switch(arg[0]){
+    char delim = arg[0];
+    receive();
+    uint8_t cn = fast_atoi(arg);
+    if(cn>=n_controllers){
+        Serial.println(ERR);
+        resetInputBuffer();
+        return true;
+    }
+    char var;
+    switch(delim){
         case READ:
-            receive(); 
-            cn = arg[0];
-            if(cn>=n_controllers){
-                Serial.println(ERR);
-                break;
-            }
             receive();
-            Serial.println(read(piController[cn], arg[0]));
+            var = arg[0];
+            Serial.println(read(piController[cn], var));
             break;
         case WRITE:
             receive();
-            cn = arg[0];
-            if(cn>=n_controllers){
-                Serial.println(ERR);
-                break;
-            }
-            receive();
-            write(piController[cn], arg[0]); //set value
+            var = arg[0];
+            write(piController[cn], var); //set value
             break;
         case RESET:
             break;
@@ -41,22 +39,25 @@ bool SerialComm::process(PIController* piController){
             Serial.println(CHECK);
             break;
         default:
+            Serial.println(ERR);
+            resetInputBuffer();
             return true;
     }
+    resetInputBuffer();
     return false;
 }
 
 uint32_t SerialComm::read(PIController &pi_controller, char con){
     switch (con){
-    case PROP:
-        return pi_controller._p;
-    case INT:
-        return pi_controller._i;
-    case FREQ:
-        return controlFrequency;
-    default:
-        return 0;
-    }
+        case PROP:
+            return pi_controller._p;
+        case INT:
+            return pi_controller._i;
+        case FREQ:
+            return controlFrequency;
+        default:
+            return 99;
+        }
 }
 
 void SerialComm::write(PIController &pi_controller, char con){
@@ -93,7 +94,7 @@ void SerialComm::receive(){
     else{
         curarglen = Serial.readBytesUntil(_DELIM, arg, BUF_SIZE);
         arg[curarglen] = _NULL_TERM;
-        Serial.read();
+        //Serial.read();
     }
 }
 

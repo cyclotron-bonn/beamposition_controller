@@ -9,14 +9,12 @@ const int DSEL_DAC = 5;
 
 SerialComm SCom;
 
-//Allocate space for 'n_controllers' instances acting as seperate controllers (default = 4, defined in globally in PIController.h)
+//Allocate space for 'n_controllers' instances acting as seperate controllers (default = 4, defined globally in PIController.h)
 PIController controllers[n_controllers];
 
-float kp = 1;
-float ki = 0;
-uint8_t adcl = 0;
-uint8_t adcr = 0;
-uint8_t bits = 12;
+float kp = 0;
+float ki = 1;
+uint8_t bits = 16;
 void setupControllers() {
   for (size_t i = 0; i < n_controllers; i++) {
     controllers[i].configure(kp, ki, 2*i, 2*i+1, i, bits);
@@ -25,6 +23,7 @@ void setupControllers() {
 
 void setup() {
   setupControllers();
+  
   pinMode(CS_ADC, OUTPUT);
   pinMode(CS_DAC, OUTPUT);
   pinMode(DSEL_ADC, OUTPUT);
@@ -33,6 +32,7 @@ void setup() {
   digitalWrite(CS_DAC, HIGH);
   digitalWrite(DSEL_ADC, HIGH);
   digitalWrite(DSEL_DAC, HIGH);
+  
   Serial.begin(115200);
   delay(1000);
 }
@@ -59,7 +59,7 @@ void writeDAC(uint8_t channel, uint16_t val) {
   digitalWrite(CS_DAC, LOW);
 }
 
-int64_t resolution = (0x1LL << 16) - 1;
+int32_t resolution = (0b1<<15)-1;
 int16_t calcNorm(int32_t L, int32_t R) {
   /*
     Calculate the control variable N=(L - R)/(L + R)
@@ -78,17 +78,17 @@ int16_t calcNorm(int32_t L, int32_t R) {
 int32_t L, R, N;
 void controller() {
   for (uint8_t i = 0; i < n_controllers; i++) {
-    PIController temp = controllers[i];
-    if (temp.active) {
-      L = readADC(temp.ADC_L);
-      R = readADC(temp.ADC_R);
-      N = calcNorm(L, R);
+    //PIController temp = controllers[i];
+    if (controllers[i].active) {
+      L = readADC(controllers[i].ADC_L);
+      R = readADC(controllers[i].ADC_R);
+      N = calcNorm(20000, 0);
       if (N) {
-        output = temp.step(setpoint, N);
+        output = controllers[i].step(N);
       }
     }
-    writeDAC(temp.DAC, output);
     Serial.println(output);
+    writeDAC(controllers[i].DAC, output);
   }
 }
 

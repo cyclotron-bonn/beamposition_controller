@@ -20,13 +20,12 @@ class ArduinoController(ArduinoSerial):
     #controller variables
     controller_address = 0
 
-    def __init__(self, port = "/dev/cu.usbmodem14301", baudrate=115200, timeout=1., P=1, I=0, HZ=130000, controller = 0):
+    def __init__(self, port = "/dev/cu.usbmodem14301", baudrate=115200, timeout=1., P=1, I=0, HZ=1, controller = 0):
         super().__init__(port=port, baudrate=baudrate, timeout=timeout)
         self.check_con()
-        self.frequency(value = HZ)
-        self.proportional(input = P)
-        self.integral(input = I)
-        self.address = self.address
+        self.set_frequency(value = HZ)
+        self.set_proportional(input = P)
+        self.set_integral(input = I)
 
     def check_con(self):
         """checks if the arduino is responding
@@ -35,7 +34,7 @@ class ArduinoController(ArduinoSerial):
             RuntimeError: One of two things happend: either the arduino is stuck in code and is not responding\\
                 or the serial connection was not successful
         """
-        cmd = self.create_command(self.CHECK_delim)
+        cmd = self.create_command(self.CHECK_delim, self.controller_address)
         ans = self.query(cmd)
         if ans != 'C':
            raise RuntimeError("Serial connection to arduino not established or arduino is not responding")
@@ -47,12 +46,12 @@ class ArduinoController(ArduinoSerial):
         cmd = self.create_command(self.RESET_delim)
         self.write(cmd)
     
-    def frequency(self):
+    def get_frequency(self):
         """gets frequency used by PID-self.address. The value does not represent the actual sampling rate
         """
         return self._read_data( var = self.con_HZ)
 
-    def frequency(self,value):
+    def set_frequency(self,value):
         """Sets the frequency used by PID-Controller. This does not change the actual sampling rate.
             Real value is estimated to be around 130kHz.
         Args:
@@ -64,12 +63,12 @@ class ArduinoController(ArduinoSerial):
             raise ValueError("Frequency must be greater than 0")
 
     
-    def proportional(self):
+    def get_proportional(self):
         """gets P-value of PID-self.address
         """
         return self._read_data(var = self.con_P)/self.PARAM_SHIFT
 
-    def proportional(self, input):
+    def set_proportional(self, input):
         """sets P-value of PID self.address
 
         Args:
@@ -86,12 +85,12 @@ class ArduinoController(ArduinoSerial):
             self._write_data(var = self.con_P, value = output)
 
     
-    def integral(self):
+    def get_integral(self):
         """gets I-value of PID-self.address
         """
         return self._read_data(var = self.con_I)/self.PARAM_SHIFT
 
-    def integral(self, input):
+    def set_integral(self, input):
         if (input > self.PARAM_SHIFT or input < 0):
                 raise ValueError("PID-constants must be smaller than "+ str(self.PARAM_SHIFT) + " and greater or equal to 0")
         else:
@@ -99,14 +98,14 @@ class ArduinoController(ArduinoSerial):
             self._write_data(var=self.con_I, value=output)
 
     
-    def active(self):
+    def get_active(self):
         """check if controller is active
         Returns:
             bool: whether self.address is active
         """
         return self._read_data(var = self.con_ACT)
 
-    def active(self, value: bool):
+    def set_active(self, value: bool):
         """enable/disable the controller
             enable: -> arduino will read its assigned adcs, calculate and set output to dac
 
@@ -116,10 +115,10 @@ class ArduinoController(ArduinoSerial):
         self._write_data(var = self.con_ACT, value = int(value))
     
     def check_controller(self):
-        c_act = self.active()
-        c_p = self.proportional() 
-        c_i = self.integral()
-        c_hz = self.frequency()
+        c_act = self.get_active()
+        c_p = self.get_proportional() 
+        c_i = self.get_integral()
+        c_hz = self.get_frequency()
         if c_act:
             print("self.address {} is enabled")
         else: print("self.address {} is disabled")

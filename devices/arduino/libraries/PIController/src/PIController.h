@@ -18,7 +18,7 @@
 
 extern uint32_t controlFrequency; //frequency of controlling
 extern uint32_t controlDelayMicro;
-const uint8_t n_controllers = 4; //amount of controllers default is 4, needed to prevent overflow error when changing variables in SerialComm
+const uint8_t n_controllers = 1; //amount of controllers default is 4, needed to prevent overflow error when changing variables in SerialComm
 
 class PIController{
     
@@ -31,14 +31,15 @@ public:
     void configure(float, float, uint8_t, uint8_t, uint8_t, uint8_t);
     void setDelay(uint32_t);
 
-    int16_t step(int16_t sp, int16_t fb);
+    int16_t step(int16_t fb);
 
     bool err() {
         return _cfg_err;
     }
     
-    uint32_t _p;
-    uint32_t _i;
+    uint16_t _p;
+    uint16_t _i;
+    int32_t _sum;
 
     //DAC-address, which ADCs to use and wether the controller is active
     bool active;
@@ -56,9 +57,6 @@ private:
     int64_t _outmax, _outmin;
     int64_t INTEG_MAX, INTEG_MIN;
     bool _cfg_err;
-    
-    // State
-    int64_t _sum;
 };
 
 #endif

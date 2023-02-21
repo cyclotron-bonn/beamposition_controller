@@ -1,9 +1,8 @@
 #include "PIController.h"
 #include <Arduino.h>
 
-uint32_t controlFrequency; //frequency of controlling
-uint32_t controlDelayMicro; //fitting delay in microseconds
-//const uint8_t controller_amount = 4;
+uint32_t controlFrequency=1; //frequency of controlling
+uint32_t controlDelayMicro=1000000; //fitting delay in microseconds
 
 void PIController::clear() {
     _sum = 0;
@@ -16,6 +15,8 @@ void PIController::configure(float kp, float ki, uint8_t AL, uint8_t AR, uint8_t
     setCoefficients(kp, ki);
     setAddresses(AL, AR, DA);
     setOutputConfig(bits);
+    controlFrequency=1;
+    setDelay(controlFrequency);
 }
 
 bool PIController::setCoefficients(float kp, float ki) {
@@ -47,6 +48,8 @@ bool PIController::setOutputConfig(uint16_t bits) {
         _outmin = -((0xFFFFULL >> (17 - bits)) + 1) * PARAM_MULT;
        
     }
+    INTEG_MAX = (int32_t(controlFrequency) * int16_t(_outmax)*PARAM_MULT)-1;
+    INTEG_MIN = (int32_t(controlFrequency) * int16_t(_outmin)*PARAM_MULT)+1;
     return ! _cfg_err;
 }
 
@@ -89,28 +92,30 @@ void PIController::setDelay(uint32_t controlFrequency){
     }
 }
 
-int16_t PIController::step(int16_t sp, int16_t fb) {
+int16_t PIController::step(int16_t fb) {
     // int16 + int16 = int17
-    int16_t err = sp - fb;
+    int16_t err = - fb;
     int32_t P = 0, I = 0;
     
     if (_p) {
         // uint16 * int16 = int32
-        P = uint16_t(_p) * int16_t(err);
+        P = _p * err;
     }
     
     if (_i) {
         // int17 * int16 = int33
         _sum += uint16_t(_i) * int16_t(err);
-        
+        Serial.println(err);
+        Serial.println(_i);
         // Limit sum to 32-bit signed value so that it saturates, never overflows.
-        if (_sum > INTEG_MAX)
-            _sum = INTEG_MAX;
-        else if (_sum < INTEG_MIN)
-            _sum = INTEG_MIN;
+        // if (_sum > INTEG_MAX)
+        //     _sum = INTEG_MAX;
+        // else if (_sum < INTEG_MIN)
+        //     _sum = INTEG_MIN;
         
         // int32
-        I = int32_t(_sum/controlFrequency);
+        I = _sum/controlFrequency;
+        Serial.println(I);
     }
     
     // int32 (P) + int32 (I)= int34
