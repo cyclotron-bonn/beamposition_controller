@@ -1,6 +1,6 @@
 #include <PIController.h>
 #include <SerialComm.h>
-#include <SPI.h>
+#include <SPIComm.h>
 
 const int CS_ADC = 2; //adjust when designing pcb
 const int DSEL_ADC = 3;
