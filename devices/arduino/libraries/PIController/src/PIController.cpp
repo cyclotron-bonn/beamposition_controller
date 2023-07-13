@@ -14,7 +14,7 @@ void PIController::configure(float kp, float ki, uint8_t AL, uint8_t AR, uint8_t
     clear();
     setCoefficients(kp, ki);
     setAddresses(AL, AR, DA);
-    setOutputConfig(bits);
+    setOutputRange(-32568, 32568);
     controlFrequency=1;
     setDelay(controlFrequency);
 }
@@ -37,19 +37,21 @@ bool PIController::setOutputConfig(uint16_t bits) {
     if (bits > 16 || bits < 1) {
         setCfgErr();
     }
-    else {
-        if (bits == 16) {
-            _outmax = (0xFFFFULL >> (17 - bits)) * PARAM_MULT;
-        }
-        else{
-            _outmax = (0xFFFFULL >> (16 - bits)) * PARAM_MULT;
-        }
-       //signed output
-        _outmin = -((0xFFFFULL >> (17 - bits)) + 1) * PARAM_MULT;
+    _outmax = (0x1ULL << bits) - 1;
+    _outmin = - (0x1ULL << bits) + 1;
+    // else {
+    //     if (bits == 16) {
+    //         _outmax = (0x1ULL >> (bits));
+    //     }
+    //     else{
+    //         _outmax = (0xFFFFULL >> (16 - bits)) * PARAM_MULT;
+    //     }
+    //    //signed output
+    //     _outmin = -((0xFFFFULL >> (17 - bits)) + 1) * PARAM_MULT;
        
-    }
-    INTEG_MAX = (int32_t(controlFrequency) * int16_t(_outmax)*PARAM_MULT)-1;
-    INTEG_MIN = (int32_t(controlFrequency) * int16_t(_outmin)*PARAM_MULT)+1;
+    // }
+    INTEG_MAX = (int32_t(controlFrequency) * int16_t(_outmax) * PARAM_MULT)-1;
+    INTEG_MIN = (int32_t(controlFrequency) * int16_t(_outmin) * PARAM_MULT)+1;
     return ! _cfg_err;
 }
 
@@ -66,13 +68,13 @@ bool PIController::setOutputRange(int16_t min, int16_t max)
     return ! _cfg_err;
 }
 
-uint32_t PIController::floatToParam(float in) {
+uint8_t PIController::floatToParam(float in) {
     if (in > PARAM_MAX || in < 0) {
         _cfg_err = true;
         return 0;
     }
 
-    uint32_t param = PARAM_MULT * in;
+    uint8_t param = PARAM_MULT * in;
     
     if (in != 0 && param == 0) {
         _cfg_err = true;
@@ -94,35 +96,34 @@ void PIController::setDelay(uint32_t controlFrequency){
 
 int16_t PIController::step(int16_t fb) {
     // int16 + int16 = int17
-    int16_t err = - fb;
+    int32_t err = int32_t(-fb); //12-bit maximum
     int32_t P = 0, I = 0;
     
     if (_p) {
-        // uint16 * int16 = int32
-        P = _p * err;
+        // uint8 * int12 < int32
+        P = uint16_t(_p) * int32_t(err); 
     }
     
     if (_i) {
         // int17 * int16 = int33
-        _sum += uint16_t(_i) * int16_t(err);
-        Serial.println(err);
-        Serial.println(_i);
-        // Limit sum to 32-bit signed value so that it saturates, never overflows.
-        // if (_sum > INTEG_MAX)
-        //     _sum = INTEG_MAX;
-        // else if (_sum < INTEG_MIN)
-        //     _sum = INTEG_MIN;
+        _sum += uint16_t(_i) * int32_t(err);
+        //Limit sum to 32-bit signed value so that it saturates, never overflows.
+        if (_sum > INTEG_MAX)
+            _sum = INTEG_MAX;
+        else if (_sum < INTEG_MIN)
+            _sum = INTEG_MIN;
         
-        // int32
-        I = _sum/controlFrequency;
+        //int32
+        I = _sum;///controlFrequency;
+        Serial.print("I:");
         Serial.println(I);
     }
     
     // int32 (P) + int32 (I)= int34
-    int32_t out = P + I;
+    int64_t out = P + I;
     
     // Remove the integer scaling factor.
-    int16_t rval = out>>PARAM_SHIFT;
+    int16_t rval = (out>>PARAM_SHIFT);
     
     // Make the output saturate
     if (rval > _outmax)

@@ -3,8 +3,8 @@
 
 #include <stdint.h>
 
-#define PARAM_SHIFT  8
-#define PARAM_BITS   16
+#define PARAM_SHIFT  4
+#define PARAM_BITS   8
 //PARAM_MAX: 1 shifted PARAM_BITS left -> 1 0000 0000 0000 0000 -> -1 -> 1111 1111 1111 1111 -> shifted PARAM_SHiFT right -> 1111 1111
 //maximum of float value (255) -> is multiplied with PARAM_MULT to have a maximum of 1111 1111 0000 0000 = 65280 (2^16 = 65536)
 #define PARAM_MAX    (((0x1ULL << PARAM_BITS)-1) >> PARAM_SHIFT)
@@ -37,8 +37,8 @@ public:
         return _cfg_err;
     }
     
-    uint16_t _p;
-    uint16_t _i;
+    uint8_t _p;
+    uint8_t _i;
     int32_t _sum;
 
     //DAC-address, which ADCs to use and wether the controller is active
@@ -48,7 +48,7 @@ public:
     uint8_t DAC;
 
 private:
-    uint32_t floatToParam(float);
+    uint8_t floatToParam(float);
     float paramToFloat(uint32_t);
     void setCfgErr();
     
