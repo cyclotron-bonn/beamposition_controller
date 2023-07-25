@@ -4,62 +4,58 @@
 
 #define NORM_RES ((0x1U<<12)-1)
 
-const int CS_ADC = 2; //adjust when designing pcb
-const int DSEL_ADC = 3;
-const int CS_DAC = 4;
-const int DSEL_DAC = 5;
-
-SerialComm SCom;
 
 //Allocate space for 'n_controllers' instances acting as seperate controllers (default = 4, defined globally in PIController.h)
-PIController controllers[n_controllers];
+bool doubleslit = true;
 
-float kp = 0;
+PIController *controllers;
+
+float kp = 1;
 float ki = 1;
 uint8_t bits = 16;
+
 void setupControllers() {
+  if(doubleslit){
+    n_controllers = 8;
+  }
+  else{
+    n_controllers = 4;
+  }
+  controllers = new PIController[n_controllers]; 
   for (size_t i = 0; i < n_controllers; i++) {
-    controllers[i].configure(kp, ki, 2*i, 2*i+1, i, bits); //p,i,address adc_left, address adc_right, adcress dac, resolution
+    controllers[i].configure(kp, ki, 2 * i, 2 * i + 1, i, bits); //p,i,address adc_left, address adc_right, adcress dac, resolution
   }
 }
 
 void setup() {
   setupControllers();
-  
-  pinMode(CS_ADC, OUTPUT);
-  pinMode(CS_DAC, OUTPUT);
-  pinMode(DSEL_ADC, OUTPUT);
-  pinMode(DSEL_DAC, OUTPUT);
-  digitalWrite(CS_ADC, HIGH);
-  digitalWrite(CS_DAC, HIGH);
-  digitalWrite(DSEL_ADC, HIGH);
-  digitalWrite(DSEL_DAC, HIGH);
-  
+  SPIsetup(true);
+  //SPI.begin();
   Serial.begin(115200);
+  
   delay(1000);
+
+//  digitalWrite(CS_DAC, LOW);
+//  uint8_t output = 0b01001111;
+//  uint16_t value = 0xFFFF;
+//  SPI.beginTransaction(SPISettings(1400000, MSBFIRST, SPI_MODE1));
+//  SPI.transfer(output);
+//  SPI.transfer16(value);
+//  digitalWrite(CS_DAC, HIGH);
 }
 
 int16_t output, norm, setpoint = 0;
 int16_t shift = (0b1 << (bits - 1)) - 1;
 
-uint16_t readADC(uint8_t channel) {
-  digitalWrite(CS_ADC, LOW);
-  uint16_t input = channel << 5;
-  uint16_t output;
-  SPI.beginTransaction(SPISettings(14000000, MSBFIRST, SPI_MODE1)); //for max1168
-  output = SPI.transfer16(input);
-  digitalWrite(CS_ADC, HIGH);
-  return output;
 
+
+void loop(){
+  uint16_t voltages[] = {0,0,0,0,0,0,0,0};
+  analogReadPrec(4);
+  delay(1000);
+  //while (micros() - start < controlDelayMicro);
 }
 
-void writeDAC(uint8_t channel, uint16_t val) {
-  digitalWrite(CS_DAC, LOW);
-  uint16_t output = channel+val;
-  SPI.beginTransaction(SPISettings(14000000, MSBFIRST, SPI_MODE1));
-  SPI.transfer16(output);
-  digitalWrite(CS_DAC, LOW);
-}
 
 
 int16_t calcNorm(int32_t L, int32_t R) {
@@ -79,7 +75,8 @@ int16_t calcNorm(int32_t L, int32_t R) {
 
 int32_t L, R, N;
 void controller() {
-  for (uint8_t i = 0; i < n_controllers; i++) {
+  for (uint8_t i=0; i<n_controllers; i++) {
+    //for (uint8_t i = 0; i < n_controllers; i++) {
     //PIController temp = controllers[i];
     if (controllers[i].active) {
       //L = readADC(controllers[i].ADC_L);
@@ -96,11 +93,18 @@ void controller() {
   }
 }
 
-void loop() {
-    if (Serial.available()) {
-      SCom.process(controllers);
-    }
-    uint32_t start = micros();
-    controller();
-    while(micros()-start<controlDelayMicro);
-}
+//void loop() {
+//  if (Serial.available()) {
+//    SCom.process(controllers);
+//  }
+//  uint32_t start = micros();
+//  controller();
+//  while (micros() - start < controlDelayMicro);
+//}
+
+
+
+//void loop(){
+//  writeDAC(1,2);
+//  delay(1000);
+//  }

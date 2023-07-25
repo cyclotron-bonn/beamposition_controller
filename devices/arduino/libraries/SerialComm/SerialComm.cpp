@@ -114,4 +114,3 @@ uint32_t SerialComm::fast_atoi(char* str){
     }
     return val;
 }
-

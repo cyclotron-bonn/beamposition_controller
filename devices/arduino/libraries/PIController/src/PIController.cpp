@@ -3,33 +3,34 @@
 
 uint32_t controlFrequency=1; //frequency of controlling
 uint32_t controlDelayMicro=1000000; //fitting delay in microseconds
+uint8_t n_controllers = 0;
 
 void PIController::clear() {
+    
     _sum = 0;
     _cfg_err = false;
 }
 
 void PIController::configure(float kp, float ki, uint8_t AL, uint8_t AR, uint8_t DA, uint8_t bits=16) {
-    //controlIO IO();
     clear();
-    setCoefficients(kp, ki);
+    setCoefficients(kp, ki, false);
     setAddresses(AL, AR, DA);
     setOutputRange(-32568, 32568);
     controlFrequency=1;
     setDelay(controlFrequency);
 }
 
-bool PIController::setCoefficients(float kp, float ki) {
+bool PIController::setCoefficients(float kp, float ki, bool act) {
     _p = floatToParam(kp);
     _i = floatToParam(ki);
-    active=true;
+    active = act;
     return ! _cfg_err;
 }
 
 void PIController::setAddresses(uint8_t AL, uint8_t AR, uint8_t DA){
-    ADC_L = AL;
-    ADC_R = AR;
-    DAC = DA;
+    adresses.adc_left = AL;
+    adresses.adc_right = AR;
+    adresses.dac = DA;
 }
 
 bool PIController::setOutputConfig(uint16_t bits) {
@@ -39,17 +40,6 @@ bool PIController::setOutputConfig(uint16_t bits) {
     }
     _outmax = (0x1ULL << bits) - 1;
     _outmin = - (0x1ULL << bits) + 1;
-    // else {
-    //     if (bits == 16) {
-    //         _outmax = (0x1ULL >> (bits));
-    //     }
-    //     else{
-    //         _outmax = (0xFFFFULL >> (16 - bits)) * PARAM_MULT;
-    //     }
-    //    //signed output
-    //     _outmin = -((0xFFFFULL >> (17 - bits)) + 1) * PARAM_MULT;
-       
-    // }
     INTEG_MAX = (int32_t(controlFrequency) * int16_t(_outmax) * PARAM_MULT)-1;
     INTEG_MIN = (int32_t(controlFrequency) * int16_t(_outmin) * PARAM_MULT)+1;
     return ! _cfg_err;

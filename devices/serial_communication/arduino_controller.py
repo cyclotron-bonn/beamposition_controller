@@ -2,7 +2,7 @@ from arduino_serial import ArduinoSerial
 import logging
 
 class ArduinoController(ArduinoSerial):
-    PARAM_SHIFT = 2**8
+    PARAM_SHIFT = 2**4
     #commands
     READ_delim = 'R' #read
     WRITE_delim = 'W' #write
@@ -16,16 +16,16 @@ class ArduinoController(ArduinoSerial):
     #returns
     CHECK_delim = 'C' #check
     ERR_delim = 'E' #error
-    
-    #controller variables
-    controller_address = 0
 
     def __init__(self, port = "/dev/cu.usbmodem14301", baudrate=115200, timeout=1., P=1, I=0, HZ=1, controller = 0):
+        self.controller_address = controller
         super().__init__(port=port, baudrate=baudrate, timeout=timeout)
+        
         self.check_con()
         self.set_frequency(value = HZ)
         self.set_proportional(input = P)
         self.set_integral(input = I)
+        
 
     def check_con(self):
         """checks if the arduino is responding
