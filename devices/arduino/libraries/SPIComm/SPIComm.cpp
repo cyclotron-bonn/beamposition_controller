@@ -2,12 +2,17 @@
 
 
 
-struct{
-    uint8_t adc;
-    uint8_t dac;
-}n_val;
+// struct{
+//     uint8_t adc;
+//     uint8_t dac;
+// }n_val;
 
 uint8_t n_volts;
+uint16_t command;
+uint16_t codes[16];
+uint8_t crc_mode = 0;
+uint16_t ccitt_crc_poly = 0b0001000000100001;
+uint16_t ansi_crc_poly = 0b1000000000000101;
 
 SPISettings HighResolutionMode(8192000, MSBFIRST, SPI_MODE1);
 SPISettings LowPowerMode(4092000, MSBFIRST, SPI_MODE1);
@@ -113,7 +118,7 @@ void DACsetup(){
 //     digitalWrite(DAC_CS, HIGH);
 // }
 
-void query(uint16_t command){
+void query(){
     SPI.beginTransaction(SPIsetting);
     digitalWrite(ADC_CS, LOW);
     SPI.transfer16(command);
@@ -132,41 +137,46 @@ uint16_t get_crc(uint16_t command){
     return command^ansi_crc_poly;
 }
 
-void transADC(uint16_t &codes){
+void transADC(uint16_t *codes[], uint8_t n){
+    *codes = new uint16_t[n];
     for(uint8_t i=0; i<4; i++){
-        if(codes[i]>=0x7FFF){
-            codes[i] -= 0x10000;
+        if((*codes)[i]>=0x7FFF){
+            (*codes)[i] -= 0x10000;
         }
     }
 }
 
 void null(uint16_t &values){
-    uint16_t command = 0b00;
-    codes = query(command);
-    uint16_t adc_codes[4] = {codes[1], codes[2], codes[3], codes[4]};
-    transADC(&adc_codes);
+    command = 0b00;
+    query();
+    uint16_t * adc_codes = new uint16_t[4];
+    transADC(&adc_codes, 4);
 }
 
 void reset(){
-    uint16_t command = 0b10001;
-    uint16_t answer = query(command);
+    command = 0b10001;
+    query();
 
 }
 
 void standby(){
-    uint16_t command = 0b100010;
+    command = 0b100010;
+    query();
 }
 
 void wakeup(){
     uint16_t command = 0b110011;
+    query();
 }
 
 void lock(){
-    uint16_t command = 0b10101010101;
+    command = 0b10101010101;
+    query();
 }
 
 void unlock(){
-    uint16_t command = 0b11001010101;
+    command = 0b11001010101;
+    query();
 }
 
 bool error_a_n(uint16_t a, uint16_t n){
@@ -176,12 +186,13 @@ bool error_a_n(uint16_t a, uint16_t n){
     return false;
 }
 
-int* rreg(uint16_t a, uint16_t n){
+int rreg(uint16_t a, uint16_t n){
     if(error_a_n(a,n)){
-        return;
+        return -99;
     }
-    uint16_t command = 0b1010000000000000 + a<<7 + n;
-    uint16_t response = query(command);
+    command = 0b1010000000000000 + (a<<7) + n;
+    int response = 0;
+    query();
 
     return response;
 
@@ -191,7 +202,7 @@ void wreg(uint16_t n, uint16_t a){
     if(error_a_n(a,n)){
         return;
     }
-    uint16_t command = 0b0110000000000000 + a<<7 + n;
+    command = 0b0110000000000000 + (a<<7) + n;
 }
 
 
@@ -206,7 +217,7 @@ struct{
     uint16_t GAIN = 0x04;
     uint16_t GLOBAL_CHOP_CFG = 0x06;
     //channel-specific settings
-    uint16_t CHx_CFG = {0x09, 0x0E, 0x13, 0x18};
+    uint16_t CHx_CFG[4] = {0x09, 0x0E, 0x13, 0x18};
     //register map crc register
     uint16_t REG_CRC = 0x3E;
 }addr;

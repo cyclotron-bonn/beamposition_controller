@@ -5,7 +5,7 @@
 uint16_t voltages[] = {0,0,0,0,0,0,0,0};
 
 void setup() {
-  SPIsetup(true);
+  //SPIsetup(true);
   SPI.begin(); 
   Serial.begin(115200);
   delay(100);

@@ -21,23 +21,17 @@ void DACsetup();
 // void analogWritePrec(uint16_t voltage, uint8_t channel);
 void convertCode(uint16_t&);
 void null(uint16_t*);
-uint16_t query(uint16_t, uint16_t);
+void query();
 uint16_t get_crc(uint16_t);
-void transADC(uint16_t);
+void transADC(uint16_t *codes[], uint8_t n);
 void reset();
 void standby();
 void wakeup();
 void lock();
 void unlock();
 bool check_a_n(uint16_t, uint16_t);
-int* rreg(uint16_t, uint16_t);
+int rreg(uint16_t, uint16_t);
 void wreg(uint16_t, uint16_t);
-
-uint16_t command;
-uint16_t codes[16];
-uint8_t crc_mode = 0;
-uint16_t ccitt_crc_poly = 0b0001000000100001;
-uint16_t ansi_crc_poly = 0b1000000000000101;
 
 #endif 
 
