@@ -29,12 +29,12 @@ void setupControllers() {
 
 void setup() {
   setupControllers();
-  SPIsetup(true);
+  SPIsetup(false);
+  DACsetup();
   //SPI.begin();
   Serial.begin(115200);
-  
   delay(1000);
-
+  Serial.println("Ready");
 //  digitalWrite(CS_DAC, LOW);
 //  uint8_t output = 0b01001111;
 //  uint16_t value = 0xFFFF;
@@ -47,14 +47,17 @@ void setup() {
 int16_t output, norm, setpoint = 0;
 int16_t shift = (0b1 << (bits - 1)) - 1;
 
-
-
+uint16_t voltages[] = {0,0,0,0};//,0,0,0,0};
 void loop(){
-  uint16_t voltages[] = {0,0,0,0,0,0,0,0};
-  analogReadPrec(4);
-  delay(1000);
-  //while (micros() - start < controlDelayMicro);
+  Serial.println("Start");
+  int start = millis();
+  for(uint32_t i=0; i<100000;i++){
+    analogReadMult(voltages);
+  }
+  int stopt = millis();
+  Serial.println(stopt - start);
 }
+
 
 
 
