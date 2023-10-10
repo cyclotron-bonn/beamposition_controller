@@ -31,6 +31,71 @@ ADS130B04::ADS130B04(uint8_t CS_PIN, uint8_t EOC_PIN){
 ADS130B04::~ADS130B04(){
 }
 
+void ADS130B04::null(){
+    command = 0b00;
+    query();
+    transADC();
+}
+
+void ADS130B04::reset(){
+    command = 0b10001;
+    query();
+
+}
+
+void ADS130B04::standby(){
+    command = 0b100010;
+    query();
+}
+
+void ADS130B04::wakeup(){
+    command = 0b110011;
+    query();
+}
+
+void ADS130B04::lock(){
+    command = 0b10101010101;
+    query();
+}
+
+void ADS130B04::unlock(){
+    command = 0b11001010101;
+    query();
+}
+
+int ADS130B04::rreg(uint16_t a, uint16_t n){
+    if(error_a_n(a,n)){
+        return -99;
+    }
+    command = 0b1010000000000000 + (a<<7) + n;
+    query();
+    return 0;
+}
+
+void ADS130B04::wreg(uint16_t n, uint16_t a){
+    if(error_a_n(a,n)){
+        return;
+    }
+    command = 0b0110000000000000 + (a<<7) + n;
+}
+
+
+
+void ADS130B04::GAIN::increase(uint8_t channel){
+    rreg()
+}
+
+void ADS130B04::GAIN::decrease(uint8_t channel){
+    
+}
+
+void ADS130B04::GAIN::set(uint8_t channel, uint8_t gain){
+    
+}
+
+void ADS130B04::GAIN::get(uint8_t channel){
+    
+}
 
 void ADS130B04::setSPIsetting(uint8_t mode){
     switch (mode){
@@ -98,37 +163,7 @@ void ADS130B04::transADC(){
     }
 }
 
-void ADS130B04::null(){
-    command = 0b00;
-    query();
-    transADC();
-}
 
-void ADS130B04::reset(){
-    command = 0b10001;
-    query();
-
-}
-
-void ADS130B04::standby(){
-    command = 0b100010;
-    query();
-}
-
-void ADS130B04::wakeup(){
-    command = 0b110011;
-    query();
-}
-
-void ADS130B04::lock(){
-    command = 0b10101010101;
-    query();
-}
-
-void ADS130B04::unlock(){
-    command = 0b11001010101;
-    query();
-}
 
 bool ADS130B04::error_a_n(uint16_t a, uint16_t n){
     if(a>ADDRESS_LIM||n>NUMBER_LIM){
@@ -137,21 +172,6 @@ bool ADS130B04::error_a_n(uint16_t a, uint16_t n){
     return false;
 }
 
-int ADS130B04::rreg(uint16_t a, uint16_t n){
-    if(error_a_n(a,n)){
-        return -99;
-    }
-    command = 0b1010000000000000 + (a<<7) + n;
-    query();
-    return 0;
-}
-
-void ADS130B04::wreg(uint16_t n, uint16_t a){
-    if(error_a_n(a,n)){
-        return;
-    }
-    command = 0b0110000000000000 + (a<<7) + n;
-}
 
 
 
