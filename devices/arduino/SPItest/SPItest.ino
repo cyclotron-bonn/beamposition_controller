@@ -1,5 +1,5 @@
 //#include <PIController.h>
-#include <SPIComm.h>
+#include "ADS130B04.h"
 
 
 uint16_t voltages[] = {0,0,0,0,0,0,0,0};
