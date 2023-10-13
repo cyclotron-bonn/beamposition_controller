@@ -6,27 +6,25 @@
 class ADS130B04;
 
 struct _register;
-typedef struct _register register;
 
 class ADS130B04{
 private:
     const uint16_t adress_lim = 0b111111;
     const uint16_t number_lim = 0b1111111;
 
-    struct{
-        const uint16_t null = 0b00;
-        const uint16_t reset = 0b10001;
-        const uint16_t standby = 0b100010;
-        const uint16_t wakeup = 0b110011;
-        const uint16_t lock = 0b10101010101;
-        const uint16_t unlock = 0b11001010101;
-    }commands;
+    
+    const uint16_t cNull = 0b00;
+    const uint16_t cReset = 0b10001;
+    const uint16_t cStandby = 0b100010;
+    const uint16_t cWakeup = 0b110011;
+    const uint16_t cLock = 0b10101010101;
+    const uint16_t cUnlock = 0b11001010101;
 
     uint8_t crc_mode = 0;
     const uint16_t ccitt_crc_poly = 0b0001000000100001;
     const uint16_t ansi_crc_poly = 0b1000000000000101;
 
-    void query(uint16_t, struct *register[], uint8_t);
+    void query(uint16_t, uint8_t);
     uint16_t genCRC(uint16_t);
     void transADC();
     bool error_a_n(uint16_t, uint16_t);
@@ -64,7 +62,7 @@ public:
     void wakeup();
     void lock();
     void unlock();
-    int rreg(uint16_t, uint16_t);
+    int rreg(struct _register, uint16_t);
     void wreg(uint16_t, uint16_t);
 
 };
