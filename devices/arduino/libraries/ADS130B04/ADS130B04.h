@@ -28,8 +28,10 @@ private:
     void transADC();
     bool error_a_n(uint16_t, uint16_t);
     void setSPIsetting(uint8_t);
-    void rreg(_register r, uint16_t n=0);
-    void wreg(uint16_t, uint16_t);
+    void completeTransfer16(uint16_t);
+    void rreg(_register, uint16_t);
+    void wreg(_register r, uint16_t n, uint16_t *new_data);
+    //uint16_t* query(uint16_t, uint8_t);
 
     /*device settings and status indicators (read-only registers)
     detailed description in datasheet: https://www.ti.com/lit/ds/symlink/ads130b04-q1.pdf?HQS=dis-mous-null-mousermode-dsf-pf-null-wwe&ts=1695742377424&ref_url=https%253A%252F%252Fwww.mouser.de%252F*/

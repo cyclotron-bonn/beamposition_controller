@@ -4,7 +4,7 @@
 SPISettings HighResolutionMode(8192000, MSBFIRST, SPI_MODE1);
 SPISettings LowPowerMode(4092000, MSBFIRST, SPI_MODE1);
 SPISettings VeryLowPowerMode(2048000, MSBFIRST, SPI_MODE1);
-SPISettings SPIsetting;
+SPISettings SPIsetting = HighResolutionMode;
 
 
 uint8_t CS;
@@ -40,6 +40,7 @@ _register regs[n_regs] = {ID, STATUS, MODE, CLOCK, GAIN, GLOBAL_CHOP_CFG, CH0_CF
 ADS130B04::ADS130B04(uint8_t CS_PIN, uint8_t EOC_PIN){
     CS = CS_PIN;
     EOC = EOC_PIN;
+
     rreg(ID, 10);
 }
 
@@ -72,17 +73,17 @@ void ADS130B04::unlock(){
     completeTransfer16(cUnlock);
 }
 
-void completeTransfer16(uint16_t command){
+void ADS130B04::completeTransfer16(uint16_t command){
     SPI.beginTransaction(SPIsetting);
     digitalWrite(CS, LOW);
     SPI.transfer16(command);
     digitalWrite(CS, HIGH);
-    SPI.endTransaction(SPIsetting);
+    SPI.endTransaction();
 }
 
 void ADS130B04::rreg(_register r, uint16_t n=0){
     if(error_a_n(r.addr,n)){
-        return -99;
+        return;
     }
     uint16_t command = 0b1010000000000000 + (r.addr<<7) + n;
     SPI.beginTransaction(SPIsetting);
@@ -122,13 +123,13 @@ void ADS130B04::wreg(_register r, uint16_t n, uint16_t *new_data){
             CHx_VAL[i] = SPI.transfer16(new_data[i]);
         }
         for(uint8_t i = n; i<n_adc-1; i++){
-            Chx_VAL[i] = SPI.transfer16(0x00);
+            CHx_VAL[i] = SPI.transfer16(0x00);
         }
-        Chx_VAL[n_adc] = SPI.transfer16(genCRC(command));
+        CHx_VAL[n_adc] = SPI.transfer16(genCRC(command));
     }
     if(n==n_adc){
         for (size_t i = 0; i < n; i++){
-            Chx_VAL[i] = SPI.transfer16(new_data[i]);
+            CHx_VAL[i] = SPI.transfer16(new_data[i]);
         }
         SPI.transfer16(genCRC(command));
     }
@@ -191,9 +192,9 @@ void ADS130B04::setPowerMode(uint8_t mode){
 void ADS130B04::updateADC(){
     SPI.beginTransaction(SPIsetting);
     digitalWrite(CS, LOW);
-    STATUS.content = SPI.transfer16(command);
+    STATUS.content = SPI.transfer16(0x00);
     for(uint8_t i=0; i<4; i++){
-        if(i==0){CHx_VAL[i] = SPI.transfer16(genCRC(command));}
+        if(i==0){CHx_VAL[i] = SPI.transfer16(genCRC(0x00));}
         else CHx_VAL[i] = SPI.transfer16(0x00);  
     }
     uint16_t crc = SPI.transfer16(0x00);  
@@ -202,25 +203,26 @@ void ADS130B04::updateADC(){
     transADC();
 }
 
-uint16_t* ADS130B04::query(uint16_t command, uint8_t n){
-    SPI.beginTransaction(SPIsetting);
-    digitalWrite(CS, LOW);
-    STATUS.content = SPI.transfer16(command);
-    for(uint8_t i=0; i<4; i++){
-        if(i==0){CHx_VAL[i] = SPI.transfer16(genCRC(command));}
-        else CHx_VAL[i] = SPI.transfer16(0x00);  
-    }
-    uint16_t crc = SPI.transfer16(0x00);  
-    digitalWrite(CS, HIGH);
-    uint8_t register_loc = 0;
-    uint16_t *response = new uint16_t[n+1];
-    digitalWrite(CS, LOW);
-    for (uint8_t i = 0; i < n+1; i++){
-       response[i] = SPI.transfer16(0x00);
-    }
-    digitalWrite(CS, HIGH);
-    return response;
-}
+// uint16_t* ADS130B04::query(uint16_t command, uint8_t n){
+//     SPI.beginTransaction(SPIsetting);
+//     digitalWrite(CS, LOW);
+//     STATUS.content = SPI.transfer16(command);
+//     for(uint8_t i=0; i<4; i++){
+//         if(i==0){CHx_VAL[i] = SPI.transfer16(genCRC(command));}
+//         else CHx_VAL[i] = SPI.transfer16(0x00);  
+//     }
+//     uint16_t crc = SPI.transfer16(0x00);  
+//     digitalWrite(CS, HIGH);
+//     uint8_t register_loc = 0;
+//     uint16_t *response = new uint16_t[n+1];
+//     digitalWrite(CS, LOW);
+//     for (uint8_t i = 0; i < n+1; i++){
+//        response[i] = SPI.transfer16(0x00);
+//     }
+//     digitalWrite(CS, HIGH);
+//     SPI.endTransaction();
+//     return response;
+// }
 
 uint16_t ADS130B04::genCRC(uint16_t command){
     if(crc_mode == 1){
