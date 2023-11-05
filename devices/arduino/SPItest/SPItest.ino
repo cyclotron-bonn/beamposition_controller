@@ -1,9 +1,6 @@
 //#include <PIController.h>
 #include "ADS130B04.h"
 
-
-uint16_t voltages[] = {0,0,0,0,0,0,0,0};
-
 void setup() {
   //SPIsetup(true);
   SPI.begin(); 

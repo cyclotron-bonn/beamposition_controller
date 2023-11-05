@@ -1,47 +1,18 @@
 #include "ADS130B04.h"
 
 
-SPISettings HighResolutionMode(8192000, MSBFIRST, SPI_MODE1);
-SPISettings LowPowerMode(4092000, MSBFIRST, SPI_MODE1);
-SPISettings VeryLowPowerMode(2048000, MSBFIRST, SPI_MODE1);
-SPISettings SPIsetting = HighResolutionMode;
+// SPISettings HighResolutionMode(8192000, MSBFIRST, SPI_MODE1);
+// SPISettings LowPowerMode(4092000, MSBFIRST, SPI_MODE1);
+// SPISettings VeryLowPowerMode(2048000, MSBFIRST, SPI_MODE1);
 
 
-uint8_t CS;
-uint8_t EOC;
+// const size_t n_adc = 4;
+// _channel channels[n_adc] = {CH0, CH1, CH2, CH3};
 
-const size_t n_adc = 4;
-uint16_t CMD_RESPONSE;
-uint16_t CHx_VAL[n_adc] = {0};
-
-struct _register{
-    uint8_t addr;
-    uint16_t content;
-    _register(uint8_t address) : addr(address){};
-};
-
-
-_register ID(0x00);
-_register STATUS(0x01);
-_register MODE(0x02);
-_register CLOCK(0x03);
-_register GAIN(0x04);
-_register GLOBAL_CHOP_CFG(0x06);
-_register CH0_CFG(0x09);
-_register CH1_CFG(0x0E);
-_register CH2_CFG(0x13);
-_register CH3_CFG(0x18);
-_register REG_CRC(0x3E);
-
-
-const size_t n_regs = 11;
-_register regs[n_regs] = {ID, STATUS, MODE, CLOCK, GAIN, GLOBAL_CHOP_CFG, CH0_CFG, CH1_CFG, CH2_CFG, CH3_CFG, REG_CRC};
-
-ADS130B04::ADS130B04(uint8_t CS_PIN, uint8_t EOC_PIN){
-    CS = CS_PIN;
-    EOC = EOC_PIN;
-
-    rreg(ID, 10);
+ADS130B04::ADS130B04(uint8_t CS, uint8_t EOC_PIN){
+    CS = CS;
+    EOC_pin = EOC_PIN;
+    SPIsetting = HighResolutionMode;
 }
 
 ADS130B04::~ADS130B04(){
@@ -54,7 +25,6 @@ void ADS130B04::null(){
 
 void ADS130B04::reset(){
     completeTransfer16(cReset);
-
 }
 
 void ADS130B04::standby(){
@@ -81,24 +51,24 @@ void ADS130B04::completeTransfer16(uint16_t command){
     SPI.endTransaction();
 }
 
-void ADS130B04::rreg(_register r, uint16_t n=0){
-    if(error_a_n(r.addr,n)){
+void ADS130B04::rreg(_register s_reg, uint8_t n=0){
+    if(error_a_n(s_reg.addr,n)){
         return;
     }
-    uint16_t command = 0b1010000000000000 + (r.addr<<7) + n;
+    uint16_t command = 0b1010000000000000 + (s_reg.addr<<7) + n;
     SPI.beginTransaction(SPIsetting);
     digitalWrite(CS, LOW);
     STATUS.content = SPI.transfer16(command);
     for(uint8_t i=0; i<4; i++){
-        if(i==0){CHx_VAL[i] = SPI.transfer16(genCRC(command));}
-        else CHx_VAL[i] = SPI.transfer16(0x00);  
+        if(i==0){channels[i].value = SPI.transfer16(genCRC(command));}
+        else channels[i].value = SPI.transfer16(0x00);  
     }
     uint16_t crc = SPI.transfer16(0x00);  
     digitalWrite(CS, HIGH);
 
     uint8_t n0 = 0;
     for(uint8_t i=0; i<n+1;i++){
-        if(r.addr == regs[i].addr){
+        if(s_reg.addr == regs[i].addr){
             n0 = i;
         }
     }
@@ -109,33 +79,34 @@ void ADS130B04::rreg(_register r, uint16_t n=0){
     digitalWrite(CS, HIGH);
     SPI.endTransaction();
 }
+}
 
-void ADS130B04::wreg(_register r, uint16_t n, uint16_t *new_data){
-    if(error_a_n(r.addr,n)){
+void ADS130B04::wreg(_register s_reg, uint8_t n, uint16_t *new_data){
+    if(error_a_n(s_reg.addr,n)){
         return;
     }
-    uint16_t command = 0b0110000000000000 + (r.addr<<7) + n;
+    uint16_t command = 0b0110000000000000 + (s_reg.addr<<7) + n;
     SPI.beginTransaction(SPIsetting);
     digitalWrite(CS, LOW);
     STATUS.content = SPI.transfer16(command);
     if(n<n_adc){
         for(uint8_t i = 0; i<n; i++){
-            CHx_VAL[i] = SPI.transfer16(new_data[i]);
+            channels[i].value = SPI.transfer16(new_data[i]);
         }
-        for(uint8_t i = n; i<n_adc-1; i++){
-            CHx_VAL[i] = SPI.transfer16(0x00);
+        for(uint8_t i = n; i<n_adc-2; i++){
+            channels[i].value = SPI.transfer16(0x00);
         }
-        CHx_VAL[n_adc] = SPI.transfer16(genCRC(command));
+        channels[n_adc-1].value = SPI.transfer16(genCRC(command));
     }
     if(n==n_adc){
         for (size_t i = 0; i < n; i++){
-            CHx_VAL[i] = SPI.transfer16(new_data[i]);
+            channels[i].value = SPI.transfer16(new_data[i]);
         }
         SPI.transfer16(genCRC(command));
     }
     if(n>n_adc){
         for (size_t i = 0; i < n_adc; i++){
-            CHx_VAL[i] = SPI.transfer16(new_data[i]);
+            channels[i].value = SPI.transfer16(new_data[i]);
         }
         for (size_t i = n_adc; i < n; i++)
         {
@@ -147,15 +118,31 @@ void ADS130B04::wreg(_register r, uint16_t n, uint16_t *new_data){
     SPI.endTransaction();
 }
 
+void ADS130B04::updateChannels(){
+    SPI.beginTransaction(SPIsetting);
+    digitalWrite(CS, LOW);
+    STATUS.content = SPI.transfer16(0x00);
+    for(uint8_t i=0; i<4; i++){
+        if(i==0){channels[i].value = SPI.transfer16(genCRC(0x00));}
+        else channels[i].value = SPI.transfer16(0x00);  
+    }
+    uint16_t crc = SPI.transfer16(0x00);  
+    digitalWrite(CS, HIGH);
+    SPI.endTransaction();
+    transADC();
+}
 
+void _channel::increaseGain(){
+    uint16_t new_data = this->gain.upper + (1<<this->gain.lower);
+    if((new_data<<(16-this->gain.upper+1))>>15){
+        return;
+    }
+    wreg(gain_reg, 0, new_data);
+}
 
-// void ADS130B04::increaseGain(uint8_t channel){
-//     int a = rreg(0,0);
-// }
-
-// void ADS130B04::decreaseGain(uint8_t channel){
-    
-// }
+void _channel::decreaseGain(){
+    return;
+}
 
 // void ADS130B04::setGain(uint8_t channel, uint8_t gain){
     
@@ -189,27 +176,15 @@ void ADS130B04::setPowerMode(uint8_t mode){
     //command = getclocksetting();
 }
 
-void ADS130B04::updateADC(){
-    SPI.beginTransaction(SPIsetting);
-    digitalWrite(CS, LOW);
-    STATUS.content = SPI.transfer16(0x00);
-    for(uint8_t i=0; i<4; i++){
-        if(i==0){CHx_VAL[i] = SPI.transfer16(genCRC(0x00));}
-        else CHx_VAL[i] = SPI.transfer16(0x00);  
-    }
-    uint16_t crc = SPI.transfer16(0x00);  
-    digitalWrite(CS, HIGH);
-    SPI.endTransaction();
-    transADC();
-}
+
 
 // uint16_t* ADS130B04::query(uint16_t command, uint8_t n){
 //     SPI.beginTransaction(SPIsetting);
 //     digitalWrite(CS, LOW);
 //     STATUS.content = SPI.transfer16(command);
 //     for(uint8_t i=0; i<4; i++){
-//         if(i==0){CHx_VAL[i] = SPI.transfer16(genCRC(command));}
-//         else CHx_VAL[i] = SPI.transfer16(0x00);  
+//         if(i==0){channels[i].value = SPI.transfer16(genCRC(command));}
+//         else channels[i].value = SPI.transfer16(0x00);  
 //     }
 //     uint16_t crc = SPI.transfer16(0x00);  
 //     digitalWrite(CS, HIGH);
@@ -224,6 +199,14 @@ void ADS130B04::updateADC(){
 //     return response;
 // }
 
+void ADS130B04::setCRC(){
+    return;
+}
+
+void ADS130B04::getCRC(){
+    return;
+}
+
 uint16_t ADS130B04::genCRC(uint16_t command){
     if(crc_mode == 1){
         return command^ccitt_crc_poly;
@@ -237,12 +220,11 @@ uint16_t ADS130B04::genCRC(uint16_t command){
 
 void ADS130B04::transADC(){
     for(uint8_t i=0; i<4; i++){
-        if(CHx_VAL[i]>=0x7FFF){
-            CHx_VAL[i]-=0x10000;
+        if(channels[i].value>=0x7FFF){
+            channels[i].value-=0x10000;
         }
     }
 }
-
 
 bool ADS130B04::error_a_n(uint16_t a, uint16_t n){
     if(a>adress_lim||n>number_lim){
@@ -250,6 +232,21 @@ bool ADS130B04::error_a_n(uint16_t a, uint16_t n){
     }
     return false;
 }
+
+uint16_t ADS130B04::masked_bit(uint16_t bit, uint16_t bit2, _bitPos pos){
+    uint16_t bit_mask = (pos.lower<<pos.upper);
+    uint16_t newbit = (bit & (~bit_mask)) | (bit2<<pos.upper);
+    return newbit;
+}
+
+void ADS130B04::enable(_channel ch){
+    return;
+}
+
+void ADS130B04::disable(_channel ch){
+    return;
+}
+
 
 
 
