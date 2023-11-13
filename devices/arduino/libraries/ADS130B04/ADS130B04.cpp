@@ -1,22 +1,14 @@
 #include "ADS130B04.h"
 
-
-// SPISettings HighResolutionMode(8192000, MSBFIRST, SPI_MODE1);
-// SPISettings LowPowerMode(4092000, MSBFIRST, SPI_MODE1);
-// SPISettings VeryLowPowerMode(2048000, MSBFIRST, SPI_MODE1);
-
-
-// const size_t n_adc = 4;
-// _channel channels[n_adc] = {CH0, CH1, CH2, CH3};
-
-ADS130B04::ADS130B04(uint8_t CS, uint8_t EOC_PIN){
-    CS = CS;
-    EOC_pin = EOC_PIN;
+ADS130B04::ADS130B04(uint8_t CS_PIN, uint8_t EOC_PIN){
+    CS = CS_PIN;
+    EOC = EOC_PIN;
     SPIsetting = HighResolutionMode;
+    setWordLength16();
 }
 
 ADS130B04::~ADS130B04(){
-    
+    reset();
 }
 
 void ADS130B04::null(){
@@ -25,6 +17,7 @@ void ADS130B04::null(){
 
 void ADS130B04::reset(){
     completeTransfer16(cReset);
+    setWordLength16();
 }
 
 void ADS130B04::standby(){
@@ -50,6 +43,21 @@ void ADS130B04::completeTransfer16(uint16_t command){
     digitalWrite(CS, HIGH);
     SPI.endTransaction();
 }
+
+void ADS130B04::setWordLength16(){
+    SPI.beginTransaction(SPIsetting);
+    digitalWrite(CS, LOW);
+    uint16_t ad_command = 0b1010000000000000 + (MODE.addr<<7);
+    _bitPos wl = _BitPos(8,9);
+    uint16_t data = change_bits(MODE.content, 0b00, wl);
+    SPI.transfer16(ad_command);
+    SPI.transfer(0x00);
+    SPI.transfer16(data);
+    SPI.transfer(0x00);
+    digitalWrite(CS, HIGH);
+    SPI.endTransaction();
+}
+
 
 void ADS130B04::rreg(_register s_reg, uint8_t n=0){
     if(error_a_n(s_reg.addr,n)){
@@ -79,7 +87,7 @@ void ADS130B04::rreg(_register s_reg, uint8_t n=0){
     digitalWrite(CS, HIGH);
     SPI.endTransaction();
 }
-}
+
 
 void ADS130B04::wreg(_register s_reg, uint8_t n, uint16_t *new_data){
     if(error_a_n(s_reg.addr,n)){
@@ -132,25 +140,35 @@ void ADS130B04::updateChannels(){
     transADC();
 }
 
-void _channel::increaseGain(){
-    uint16_t new_data = this->gain.upper + (1<<this->gain.lower);
-    if((new_data<<(16-this->gain.upper+1))>>15){
-        return;
+void ADS130B04::increaseGain(_channel ch){
+    uint16_t cgain = extract_bits(GAIN.content, ch.gain);
+    if(cgain == 0b111){
+        return; //dont do anything if gain already at max
     }
-    wreg(gain_reg, 0, new_data);
+    uint16_t new_data = change_bits(GAIN.content, cgain+1, ch.gain);
+    wreg(GAIN, 0, &new_data);
 }
 
-void _channel::decreaseGain(){
-    return;
+void ADS130B04::decreaseGain(_channel ch){
+    uint16_t cgain = extract_bits(GAIN.content, ch.gain);
+    if(cgain == 0b000){
+        return; //dont do anything if gain already at min
+    }
+    uint16_t new_data = change_bits(GAIN.content, cgain+1, ch.gain);
+    wreg(GAIN, 0, &new_data);
 }
 
-// void ADS130B04::setGain(uint8_t channel, uint8_t gain){
-    
-// }
+void ADS130B04::setGain(_channel ch, uint16_t gain){
+    if(gain > 7){
+        return; //dont do anything as max(gain) = 7 = 0b111
+    }
+    uint16_t new_data = change_bits(GAIN.content, gain, ch.gain);
+    wreg(GAIN, 0, &new_data);
+}
 
-// void ADS130B04::getGain(uint8_t channel){
-    
-// }
+uint16_t ADS130B04::getGain(_channel ch){
+    return extract_bits(GAIN.content, ch.gain);
+}
 
 void ADS130B04::setSPIsetting(uint8_t mode){
     switch (mode){
@@ -175,29 +193,6 @@ void ADS130B04::setPowerMode(uint8_t mode){
     setSPIsetting(mode);
     //command = getclocksetting();
 }
-
-
-
-// uint16_t* ADS130B04::query(uint16_t command, uint8_t n){
-//     SPI.beginTransaction(SPIsetting);
-//     digitalWrite(CS, LOW);
-//     STATUS.content = SPI.transfer16(command);
-//     for(uint8_t i=0; i<4; i++){
-//         if(i==0){channels[i].value = SPI.transfer16(genCRC(command));}
-//         else channels[i].value = SPI.transfer16(0x00);  
-//     }
-//     uint16_t crc = SPI.transfer16(0x00);  
-//     digitalWrite(CS, HIGH);
-//     uint8_t register_loc = 0;
-//     uint16_t *response = new uint16_t[n+1];
-//     digitalWrite(CS, LOW);
-//     for (uint8_t i = 0; i < n+1; i++){
-//        response[i] = SPI.transfer16(0x00);
-//     }
-//     digitalWrite(CS, HIGH);
-//     SPI.endTransaction();
-//     return response;
-// }
 
 void ADS130B04::setCRC(){
     return;
@@ -233,20 +228,27 @@ bool ADS130B04::error_a_n(uint16_t a, uint16_t n){
     return false;
 }
 
-uint16_t ADS130B04::masked_bit(uint16_t bit, uint16_t bit2, _bitPos pos){
-    uint16_t bit_mask = (pos.lower<<pos.upper);
-    uint16_t newbit = (bit & (~bit_mask)) | (bit2<<pos.upper);
-    return newbit;
-}
-
 void ADS130B04::enable(_channel ch){
-    return;
+    uint16_t new_data = change_bits(CLOCK.content, 1, ch.en);
+    wreg(CLOCK, 0, &new_data);
 }
 
 void ADS130B04::disable(_channel ch){
-    return;
+    uint16_t new_data = change_bits(CLOCK.content, 0, ch.en);
+    wreg(CLOCK, 0, &new_data);
 }
 
+uint16_t ADS130B04::change_bits(uint16_t data, uint16_t new_data, _bitPos pos){
+    uint16_t b = ~0x0;
+    uint16_t bit_mask = (b) >> (15-(pos.upper-pos.lower)) << pos.lower;
+    return (data & (~bit_mask)) | (new_data<<pos.lower);
+}
+
+uint16_t ADS130B04::extract_bits(uint16_t data, _bitPos pos){
+    uint16_t b = ~0x0;
+    uint16_t bit_mask = ~(b >> (15-(pos.upper-pos.lower)) << pos.lower);
+    return (data & ~bit_mask) >> pos.lower;
+}
 
 
 

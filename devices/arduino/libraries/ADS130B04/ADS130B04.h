@@ -18,6 +18,7 @@ struct _bitPos{
 struct _channel{
     _register CFG;
     _bitPos gain;
+    _bitPos en;
     uint8_t status_bit;
     bool enable;
     uint16_t value;
@@ -52,8 +53,8 @@ private:
     bool error_a_n(uint16_t, uint16_t);
     void setSPIsetting(uint8_t);
     void completeTransfer16(uint16_t);
-    uint16_t masked_bit(uint16_t, uint16_t, _bitPos);
-    //uint16_t* query(uint16_t, uint8_t);
+    uint16_t change_bits(uint16_t, uint16_t, _bitPos);
+    uint16_t extract_bits(uint16_t, _bitPos);
 
     /*device settings and status indicators (read-only registers)
     detailed description in datasheet: https://www.ti.com/lit/ds/symlink/ads130b04-q1.pdf?HQS=dis-mous-null-mousermode-dsf-pf-null-wwe&ts=1695742377424&ref_url=https%253A%252F%252Fwww.mouser.de%252F*/
@@ -118,24 +119,11 @@ public:
     //channel related
     void enable(_channel);
     void disable(_channel);
-    void setGain(_channel);
-    void getGain();
+    void setGain(_channel, uint16_t);
+    uint16_t getGain(_channel);
     void increaseGain(_channel);
-    void decreaseGain(_channel):
+    void decreaseGain(_channel);
 };
-
-class ADS130B04: public SPI{
-private:
-    
-
-public:
-    ADS130B04(uint8_t cs, uint8_t eoc);
-    ~ADS130B04();
-
-    
-}
-
-
 
 
 #endif 
