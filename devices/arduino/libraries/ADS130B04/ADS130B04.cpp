@@ -48,7 +48,7 @@ void ADS130B04::setWordLength16(){
     SPI.beginTransaction(SPIsetting);
     digitalWrite(CS, LOW);
     uint16_t ad_command = 0b1010000000000000 + (MODE.addr<<7);
-    _bitPos wl = _BitPos(8,9);
+    _bitPos wl = _bitPos(8,9);
     uint16_t data = change_bits(MODE.content, 0b00, wl);
     SPI.transfer16(ad_command);
     SPI.transfer(0x00);

@@ -6,24 +6,24 @@
 struct _register{   
     uint8_t addr;
     uint16_t content;
-    _register(uint8_t address) : addr(address){};
+    _register(uint8_t address) : addr{address}{};
 };
     
 struct _bitPos{
     uint8_t lower;
     uint8_t upper;
-    _bitPos(uint8_t l, uint8_t u) : lower(l), upper(u){};
+    _bitPos();
+    _bitPos(uint8_t l, uint8_t u) : lower{l}, upper{u}{};
 };
 
 struct _channel{
     _register CFG;
     _bitPos gain;
     _bitPos en;
-    uint8_t status_bit;
+    _bitPos status_bit;
     bool enable;
     uint16_t value;
-    uint16_t last_value;
-    _channel(_register cfg, _bitPos g, uint8_t sbit) : CFG(cfg), gain(g), status_bit(sbit){};
+    _channel(_register cfg, _bitPos g, _bitPos e) : CFG{cfg}, gain{g}, en{e}{};
 };
 
 class ADS130B04{
@@ -74,21 +74,25 @@ public:
 
     _register CH0_CFG = _register(0x09);
     _bitPos CH0_GAIN = _bitPos(0,2);
+    _bitPos CH0_EN = _bitPos(8,8);
 
     _register CH1_CFG = _register(0x0E);
     _bitPos CH1_GAIN = _bitPos(4,6);
+    _bitPos CH1_EN = _bitPos(9,9);
 
     _register CH2_CFG = _register(0x13);
     _bitPos CH2_GAIN = _bitPos(8,10);
+    _bitPos CH2_EN = _bitPos(10,10);
 
     _register CH3_CFG = _register(0x18);
     _bitPos CH3_GAIN = _bitPos(12,14);
+    _bitPos CH3_EN = _bitPos(11,11);
 
 
-    _channel CH0 = _channel(CH0_CFG, CH0_GAIN, 0);
-    _channel CH1 = _channel(CH1_CFG, CH1_GAIN, 1);
-    _channel CH2 = _channel(CH2_CFG, CH2_GAIN, 2);
-    _channel CH3 = _channel(CH3_CFG, CH3_GAIN, 3);
+    _channel CH0 = _channel(CH0_CFG, CH0_GAIN, CH0_GAIN);
+    _channel CH1 = _channel(CH1_CFG, CH1_GAIN, CH1_EN);
+    _channel CH2 = _channel(CH2_CFG, CH2_GAIN, CH2_EN);
+    _channel CH3 = _channel(CH3_CFG, CH3_GAIN, CH3_EN);
 
     static constexpr size_t n_regs = 11;
     _register regs[n_regs] = {ID, STATUS, MODE, CLOCK, GAIN, GLOBAL_CHOP_CFG, CH0_CFG, CH1_CFG, CH2_CFG, CH3_CFG, REG_CRC};
@@ -112,6 +116,7 @@ public:
     void wakeup();
     void lock();
     void unlock();
+    void setWordLength16();
     //register related
     void rreg(_register, uint8_t);
     void wreg(_register, uint8_t, uint16_t*);
