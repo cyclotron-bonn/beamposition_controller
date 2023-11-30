@@ -1,10 +1,10 @@
 #include "ADS130B04.h"
 
 ADS130B04::ADS130B04(uint8_t CS_PIN, uint8_t EOC_PIN){
+    //set stuff
     CS = CS_PIN;
     EOC = EOC_PIN;
     SPIsetting = HighResolutionMode;
-    setWordLength16();
 }
 
 ADS130B04::~ADS130B04(){
@@ -48,8 +48,9 @@ void ADS130B04::setWordLength16(){
     SPI.beginTransaction(SPIsetting);
     digitalWrite(CS, LOW);
     uint16_t ad_command = 0b1010000000000000 + (MODE.addr<<7);
-    _bitPos wl = _bitPos(8,9);
+    _bitPos wl = _bitPos(8,9); //position of word length
     uint16_t data = change_bits(MODE.content, 0b00, wl);
+    //communicate with 24-bit where first 16-bits hold information
     SPI.transfer16(ad_command);
     SPI.transfer(0x00);
     SPI.transfer16(data);
@@ -64,9 +65,11 @@ void ADS130B04::rreg(_register s_reg, uint8_t n=0){
         return;
     }
     uint16_t command = 0b1010000000000000 + (s_reg.addr<<7) + n;
-    SPI.beginTransaction(SPIsetting);
+    SPI.beginTransaction(HighResolutionMode);
     digitalWrite(CS, LOW);
     STATUS.content = SPI.transfer16(command);
+    Serial.println(STATUS.content);
+    //update all channels as response from earlier action (prior to this execution of this function (or other read function))
     for(uint8_t i=0; i<4; i++){
         if(i==0){channels[i].value = SPI.transfer16(genCRC(command));}
         else channels[i].value = SPI.transfer16(0x00);  
@@ -74,12 +77,14 @@ void ADS130B04::rreg(_register s_reg, uint8_t n=0){
     uint16_t crc = SPI.transfer16(0x00);  
     digitalWrite(CS, HIGH);
 
+    //find the position of the starting register in the array of registers
     uint8_t n0 = 0;
     for(uint8_t i=0; i<n+1;i++){
         if(s_reg.addr == regs[i].addr){
             n0 = i;
         }
     }
+    //update all registers
     digitalWrite(CS, LOW);
     for (uint8_t i = n0; i < n+1; i++){
        regs[i].content = SPI.transfer16(0x00);
@@ -97,6 +102,7 @@ void ADS130B04::wreg(_register s_reg, uint8_t n, uint16_t *new_data){
     SPI.beginTransaction(SPIsetting);
     digitalWrite(CS, LOW);
     STATUS.content = SPI.transfer16(command);
+    //on every new data given the channel value is returned for the first 4 values.
     if(n<n_adc){
         for(uint8_t i = 0; i<n; i++){
             channels[i].value = SPI.transfer16(new_data[i]);
@@ -127,6 +133,7 @@ void ADS130B04::wreg(_register s_reg, uint8_t n, uint16_t *new_data){
 }
 
 void ADS130B04::updateChannels(){
+    //usiing the null command one can retrive the channel data
     SPI.beginTransaction(SPIsetting);
     digitalWrite(CS, LOW);
     STATUS.content = SPI.transfer16(0x00);
@@ -141,6 +148,7 @@ void ADS130B04::updateChannels(){
 }
 
 void ADS130B04::increaseGain(_channel ch){
+    //increase the gain of a specific channel
     uint16_t cgain = extract_bits(GAIN.content, ch.gain);
     if(cgain == 0b111){
         return; //dont do anything if gain already at max
@@ -150,6 +158,7 @@ void ADS130B04::increaseGain(_channel ch){
 }
 
 void ADS130B04::decreaseGain(_channel ch){
+    //decrease gain of specific channel
     uint16_t cgain = extract_bits(GAIN.content, ch.gain);
     if(cgain == 0b000){
         return; //dont do anything if gain already at min
@@ -159,6 +168,7 @@ void ADS130B04::decreaseGain(_channel ch){
 }
 
 void ADS130B04::setGain(_channel ch, uint16_t gain){
+    //set gain of specific channel
     if(gain > 7){
         return; //dont do anything as max(gain) = 7 = 0b111
     }
@@ -167,10 +177,12 @@ void ADS130B04::setGain(_channel ch, uint16_t gain){
 }
 
 uint16_t ADS130B04::getGain(_channel ch){
+    //get gain of specific channel
     return extract_bits(GAIN.content, ch.gain);
 }
 
 void ADS130B04::setSPIsetting(uint8_t mode){
+    //set spi setting on device
     switch (mode){
         case 0:
             SPIsetting = HighResolutionMode;
@@ -190,6 +202,7 @@ void ADS130B04::setSPIsetting(uint8_t mode){
 }
 
 void ADS130B04::setPowerMode(uint8_t mode){
+    //set power mode on device
     setSPIsetting(mode);
     //command = getclocksetting();
 }
@@ -203,6 +216,7 @@ void ADS130B04::getCRC(){
 }
 
 uint16_t ADS130B04::genCRC(uint16_t command){
+    //gen crc command depending on poly used
     if(crc_mode == 1){
         return command^ccitt_crc_poly;
     }
@@ -214,6 +228,7 @@ uint16_t ADS130B04::genCRC(uint16_t command){
 }
 
 void ADS130B04::transADC(){
+    //translate unsigned to signed adc values using given formula
     for(uint8_t i=0; i<4; i++){
         if(channels[i].value>=0x7FFF){
             channels[i].value-=0x10000;
@@ -240,13 +255,13 @@ void ADS130B04::disable(_channel ch){
 
 uint16_t ADS130B04::change_bits(uint16_t data, uint16_t new_data, _bitPos pos){
     uint16_t b = ~0x0;
-    uint16_t bit_mask = (b) >> (15-(pos.upper-pos.lower)) << pos.lower;
+    uint16_t bit_mask = (b) >> (15-(pos.upper-pos.lower)) << pos.lower; //well, i mean.. this works. just think about it
     return (data & (~bit_mask)) | (new_data<<pos.lower);
 }
 
 uint16_t ADS130B04::extract_bits(uint16_t data, _bitPos pos){
     uint16_t b = ~0x0;
-    uint16_t bit_mask = ~(b >> (15-(pos.upper-pos.lower)) << pos.lower);
+    uint16_t bit_mask = ~(b >> (15-(pos.upper-pos.lower)) << pos.lower); //same as above
     return (data & ~bit_mask) >> pos.lower;
 }
 
