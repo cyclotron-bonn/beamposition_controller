@@ -2,9 +2,11 @@
 
 ADS130B04::ADS130B04(uint8_t CS_PIN, uint8_t EOC_PIN){
     //set stuff
+    pinMode(CS_PIN, OUTPUT);
     CS = CS_PIN;
     EOC = EOC_PIN;
     SPIsetting = HighResolutionMode;
+   
 }
 
 ADS130B04::~ADS130B04(){
@@ -12,28 +14,28 @@ ADS130B04::~ADS130B04(){
 }
 
 void ADS130B04::null(){
-    completeTransfer16(0x00);
+    completeTransfer(0x00);
 }
 
 void ADS130B04::reset(){
-    completeTransfer16(cReset);
+    completeTransfer(cReset);
     setWordLength16();
 }
 
 void ADS130B04::standby(){
-    completeTransfer16(cStandby);
+    completeTransfer(cStandby);
 }
 
 void ADS130B04::wakeup(){
-    completeTransfer16(cWakeup);
+    completeTransfer(cWakeup);
 }
 
 void ADS130B04::lock(){
-    completeTransfer16(cLock);
+    completeTransfer(cLock);
 }
 
 void ADS130B04::unlock(){
-    completeTransfer16(cUnlock);
+    completeTransfer(cUnlock);
 }
 
 uint16_t ADS130B04::transfer16(uint16_t command){
@@ -44,25 +46,78 @@ uint16_t ADS130B04::transfer16(uint16_t command){
     return response0 + (response1 << 8);
 }
 
-void ADS130B04::completeTransfer16(uint16_t command){
+void ADS130B04::completeTransfer(uint16_t command, uint8_t mode=16){
     SPI.beginTransaction(SPIsetting);
     digitalWrite(CS, LOW);
-    transfer16(command);
+    switch (mode){
+    case 16:
+        transfer16(command);
+        break;
+    case 24:
+        transfer16(command);
+        transfer(0x00);
+        break;
+    case 32: 
+        transfer16(command):
+        transfer16(0x0000);
+        break;
+    default:
+        break;
+    }
     digitalWrite(CS, HIGH);
     SPI.endTransaction();
 }
 
-void ADS130B04::setWordLength16(){
+void ADS130B04::setup(){
+     //initialize communication with adc and manipulate settings to fit this script
+    STATUS.content = completeTransfer(0x0000);
+    uint8_t word_length = extract_bits(STATUS.content, _bitPos(9,8))
+    switch (word_length)
+    {
+    case 0b00:
+        word_length = 16;
+        break;
+    case 0b01:
+        word_length = 24;
+        break;
+    case 0b10:
+        word_length = 32;
+        break;
+    default:
+        word_length = 0;
+        break;
+    }
+    completeTransfer(cUnlock, word_length);
+    setWordLength16(word_length);
+}
+
+void ADS130B04::setWordLength16(uint8_t mode){ //mode = current word length
     SPI.beginTransaction(SPIsetting);
     digitalWrite(CS, LOW);
     uint16_t ad_command = 0b1010000000000000 + (MODE.addr<<7);
-    _bitPos wl = _bitPos(8,9); //position of word length
+    _bitPos wl = _bitPos(9,8); //position of word length
     uint16_t data = change_bits(MODE.content, 0b00, wl);
     //communicate with 24-bit where first 16-bits hold information
-    transfer16(ad_command);
-    SPI.transfer(0x00);
-    transfer16(data);
-    SPI.transfer(0x00);
+    switch (mode){
+    case 16:
+        transfer16(command);
+        transfer16(data);
+        break;
+    case 24:
+        transfer16(command);
+        transfer(0x00);
+        transfer16(data);
+        transfer(0x00);
+        break;
+    case 32: 
+        transfer16(command):
+        transfer16(0x0000);
+        transfer16(data);
+        transfer16(0x0000);
+        break;
+    default:
+        break;
+    }
     digitalWrite(CS, HIGH);
     SPI.endTransaction();
 }
@@ -76,7 +131,7 @@ void ADS130B04::rreg(_register s_reg, uint8_t n=0){
     SPI.beginTransaction(HighResolutionMode);
     digitalWrite(CS, LOW);
     STATUS.content = transfer16(command);
-    Serial.println(STATUS.content);
+    Serial.println(STATUS.content, BIN);
     //update all channels as response from earlier action (prior to this execution of this function (or other read function))
     for(uint8_t i=0; i<4; i++){
         if(i==0){channels[i].value = transfer16(genCRC(command));}

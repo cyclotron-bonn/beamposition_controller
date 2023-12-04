@@ -15,7 +15,7 @@ struct _bitPos{
     uint8_t lower;
     uint8_t upper;
     _bitPos(){};
-    _bitPos(uint8_t l, uint8_t u) : lower{l}, upper{u}{};
+    _bitPos(uint8_t l, uint8_t u) :upper{u}, lower{l}{};
 };
 
 //a struct for any channel. doesn't hold any special data, but just simplfies using each channel
@@ -49,7 +49,7 @@ private:
     const uint16_t cStandby = 0b100010;
     const uint16_t cWakeup = 0b110011;
     const uint16_t cLock = 0b10101010101;
-    const uint16_t cUnlock = 0b11001010101;
+    const uint16_t cUnlock = 0b0000011001100110;
 
     //crc stuff
     uint8_t crc_mode = 0;
@@ -61,7 +61,7 @@ private:
     bool error_a_n(uint16_t, uint16_t); //give error if a or n are larger than the allowerd address and number lim
     void setSPIsetting(uint8_t); //set spi setting
     uint16_t transfer16(uint16_t);
-    void completeTransfer16(uint16_t); //just send 16-bits of data
+    void completeTransfer(uint16_t command, uint8_t mode=16); //just send 16-bits of data
     uint16_t change_bits(uint16_t, uint16_t, _bitPos); //write just some new bits to a register and leave rest unchanged
     uint16_t extract_bits(uint16_t, _bitPos); //read just some bits from a register
 
@@ -84,19 +84,19 @@ public:
     _register REG_CRC = _register(0x3E);  
 
     _register CH0_CFG = _register(0x09);
-    _bitPos CH0_GAIN = _bitPos(0,2);
+    _bitPos CH0_GAIN = _bitPos(2,0);
     _bitPos CH0_EN = _bitPos(8,8);
 
     _register CH1_CFG = _register(0x0E);
-    _bitPos CH1_GAIN = _bitPos(4,6);
+    _bitPos CH1_GAIN = _bitPos(6,4);
     _bitPos CH1_EN = _bitPos(9,9);
 
     _register CH2_CFG = _register(0x13);
-    _bitPos CH2_GAIN = _bitPos(8,10);
+    _bitPos CH2_GAIN = _bitPos(10,8);
     _bitPos CH2_EN = _bitPos(10,10);
 
     _register CH3_CFG = _register(0x18);
-    _bitPos CH3_GAIN = _bitPos(12,14);
+    _bitPos CH3_GAIN = _bitPos(14,12);
     _bitPos CH3_EN = _bitPos(11,11);
 
     //initializing ghe 4 channels with given data structures
