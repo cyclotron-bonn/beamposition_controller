@@ -60,6 +60,7 @@ private:
     void transADC(); //transform unsigned 16-bit value from adc to signed 16-bit value according to scheme
     bool error_a_n(uint16_t, uint16_t); //give error if a or n are larger than the allowerd address and number lim
     void setSPIsetting(uint8_t); //set spi setting
+    uint16_t transfer16(uint16_t);
     void completeTransfer16(uint16_t); //just send 16-bits of data
     uint16_t change_bits(uint16_t, uint16_t, _bitPos); //write just some new bits to a register and leave rest unchanged
     uint16_t extract_bits(uint16_t, _bitPos); //read just some bits from a register
