@@ -12,10 +12,10 @@ struct _register{
     
 //just a simplified struct to hold information about the bit position of different data stored in registers
 struct _bitPos{
-    uint8_t lower;
     uint8_t upper;
+    uint8_t lower;
     _bitPos(){};
-    _bitPos(uint8_t l, uint8_t u) :upper{u}, lower{l}{};
+    _bitPos(uint8_t u, uint8_t l) :upper{u}, lower{l}{};
 };
 
 //a struct for any channel. doesn't hold any special data, but just simplfies using each channel
@@ -61,7 +61,7 @@ private:
     bool error_a_n(uint16_t, uint16_t); //give error if a or n are larger than the allowerd address and number lim
     void setSPIsetting(uint8_t); //set spi setting
     uint16_t transfer16(uint16_t);
-    void completeTransfer(uint16_t command, uint8_t mode=16); //just send 16-bits of data
+    uint16_t completeTransfer(uint16_t command, uint8_t mode=16); //just send 16-bits of data
     uint16_t change_bits(uint16_t, uint16_t, _bitPos); //write just some new bits to a register and leave rest unchanged
     uint16_t extract_bits(uint16_t, _bitPos); //read just some bits from a register
 
@@ -116,6 +116,7 @@ public:
     //chip related
     ADS130B04(uint8_t, uint8_t);
     ~ADS130B04();
+    void setup();
 
     void setPowerMode(uint8_t); //set power mode on adc
     void updateChannels(); //get new data from adc channels
@@ -128,7 +129,7 @@ public:
     void wakeup();
     void lock();
     void unlock();
-    void setWordLength16(); //set the command length so 16-bit (default is 24-bit)
+    void setWordLength16(uint8_t); //set the command length so 16-bit (default is 24-bit)
 
     //register related
     void rreg(_register, uint8_t); //read n registers starting with given one

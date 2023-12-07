@@ -5,7 +5,7 @@ ADS130B04::ADS130B04(uint8_t CS_PIN, uint8_t EOC_PIN){
     pinMode(CS_PIN, OUTPUT);
     CS = CS_PIN;
     EOC = EOC_PIN;
-    SPIsetting = HighResolutionMode;
+    SPIsetting = VeryLowPowerMode;
    
 }
 
@@ -19,7 +19,7 @@ void ADS130B04::null(){
 
 void ADS130B04::reset(){
     completeTransfer(cReset);
-    setWordLength16();
+    setup();
 }
 
 void ADS130B04::standby(){
@@ -38,57 +38,61 @@ void ADS130B04::unlock(){
     completeTransfer(cUnlock);
 }
 
-uint16_t ADS130B04::transfer16(uint16_t command){
+uint16_t ADS130B04::transfer(uint16_t command){
     uint8_t command0 = command >> 8;
     uint8_t command1 = (command << 8) >> 8;
     uint16_t response0 = SPI.transfer(command0);
     uint16_t response1 = SPI.transfer(command1);
-    return response0 + (response1 << 8);
+    pad();
+    return (response0 << 8) + response1 ;
 }
 
-void ADS130B04::completeTransfer(uint16_t command, uint8_t mode=16){
+uint16_t ADS130B04::completeTransfer(uint16_t command){
     SPI.beginTransaction(SPIsetting);
     digitalWrite(CS, LOW);
-    switch (mode){
-    case 16:
-        transfer16(command);
-        break;
-    case 24:
-        transfer16(command);
-        transfer(0x00);
-        break;
-    case 32: 
-        transfer16(command):
-        transfer16(0x0000);
-        break;
-    default:
-        break;
-    }
+    uint16_t response = 0;
+    Serial.print("mode:");
+    Serial.println(mode);
+    response = transfer(command);
+    pad();
+    uint16_t crc_code = genCRC(command);
+    Serial.print("crc");
+    Serial.println(crc_code);
+    transfer(crc_code);
+    pad();
     digitalWrite(CS, HIGH);
     SPI.endTransaction();
+    return response;
+}
+
+void ADS130B04::pad(){
+    uint8_t word_length = extract_bits(STATUS.content, _bitPos(9,8));
+    switch (word_length){
+        case 0b00:
+            break;
+        case 0b01:
+            SPI.transfer(0x00);
+            break;
+        case 0b10: 
+            SPI.transfer(0x00);
+            SPI.transfer(0x00);
+            break;
+        default:
+            break;
+    }
 }
 
 void ADS130B04::setup(){
      //initialize communication with adc and manipulate settings to fit this script
     STATUS.content = completeTransfer(0x0000);
-    uint8_t word_length = extract_bits(STATUS.content, _bitPos(9,8))
-    switch (word_length)
-    {
-    case 0b00:
-        word_length = 16;
-        break;
-    case 0b01:
-        word_length = 24;
-        break;
-    case 0b10:
-        word_length = 32;
-        break;
-    default:
-        word_length = 0;
-        break;
-    }
-    completeTransfer(cUnlock, word_length);
-    setWordLength16(word_length);
+    Serial.print("Status:");
+    Serial.println(STATUS.content, BIN);
+    Serial.print("WL0:");
+    Serial.println(word_length, BIN);
+    Serial.print("WL1:");
+    Serial.println(word_length);
+    completeTransfer(cUnlock);
+    setWordLength16();
 }
 
 void ADS130B04::setWordLength16(uint8_t mode){ //mode = current word length
@@ -98,26 +102,10 @@ void ADS130B04::setWordLength16(uint8_t mode){ //mode = current word length
     _bitPos wl = _bitPos(9,8); //position of word length
     uint16_t data = change_bits(MODE.content, 0b00, wl);
     //communicate with 24-bit where first 16-bits hold information
-    switch (mode){
-    case 16:
-        transfer16(command);
-        transfer16(data);
-        break;
-    case 24:
-        transfer16(command);
-        transfer(0x00);
-        transfer16(data);
-        transfer(0x00);
-        break;
-    case 32: 
-        transfer16(command):
-        transfer16(0x0000);
-        transfer16(data);
-        transfer16(0x0000);
-        break;
-    default:
-        break;
-    }
+    transfer(ad_command);
+    transfer(data);
+    Serial.print("mode:");
+    Serial.println(mode);
     digitalWrite(CS, HIGH);
     SPI.endTransaction();
 }
@@ -130,14 +118,15 @@ void ADS130B04::rreg(_register s_reg, uint8_t n=0){
     uint16_t command = 0b1010000000000000 + (s_reg.addr<<7) + n;
     SPI.beginTransaction(HighResolutionMode);
     digitalWrite(CS, LOW);
-    STATUS.content = transfer16(command);
+    STATUS.content = transfer(command);
+    Serial.print("Status:");
     Serial.println(STATUS.content, BIN);
     //update all channels as response from earlier action (prior to this execution of this function (or other read function))
     for(uint8_t i=0; i<4; i++){
-        if(i==0){channels[i].value = transfer16(genCRC(command));}
-        else channels[i].value = transfer16(0x00);  
+        if(i==0){channels[i].value = transfer(genCRC(command));}
+        else channels[i].value = transfer(0x00);  
     }
-    uint16_t crc = transfer16(0x00);  
+    uint16_t crc = transfer(0x00);  
     digitalWrite(CS, HIGH);
 
     //find the position of the starting register in the array of registers
@@ -150,7 +139,7 @@ void ADS130B04::rreg(_register s_reg, uint8_t n=0){
     //update all registers
     digitalWrite(CS, LOW);
     for (uint8_t i = n0; i < n+1; i++){
-       regs[i].content = transfer16(0x00);
+       regs[i].content = transfer(0x00);
     }
     digitalWrite(CS, HIGH);
     SPI.endTransaction();
@@ -164,32 +153,32 @@ void ADS130B04::wreg(_register s_reg, uint8_t n, uint16_t *new_data){
     uint16_t command = 0b0110000000000000 + (s_reg.addr<<7) + n;
     SPI.beginTransaction(SPIsetting);
     digitalWrite(CS, LOW);
-    STATUS.content = transfer16(command);
+    STATUS.content = transfer(command);
     //on every new data given the channel value is returned for the first 4 values.
     if(n<n_adc){
         for(uint8_t i = 0; i<n; i++){
-            channels[i].value = transfer16(new_data[i]);
+            channels[i].value = transfer(new_data[i]);
         }
         for(uint8_t i = n; i<n_adc-2; i++){
-            channels[i].value = transfer16(0x00);
+            channels[i].value = transfer(0x00);
         }
-        channels[n_adc-1].value = transfer16(genCRC(command));
+        channels[n_adc-1].value = transfer(genCRC(command));
     }
     if(n==n_adc){
         for (size_t i = 0; i < n; i++){
-            channels[i].value = transfer16(new_data[i]);
+            channels[i].value = transfer(new_data[i]);
         }
-        transfer16(genCRC(command));
+        transfer(genCRC(command));
     }
     if(n>n_adc){
         for (size_t i = 0; i < n_adc; i++){
-            channels[i].value = transfer16(new_data[i]);
+            channels[i].value = transfer(new_data[i]);
         }
         for (size_t i = n_adc; i < n; i++)
         {
-            transfer16(new_data[i]);
+            transfer(new_data[i]);
         }
-        transfer16(genCRC(command));
+        transfer(genCRC(command));
     }
     digitalWrite(CS, HIGH);
     SPI.endTransaction();
@@ -199,12 +188,12 @@ void ADS130B04::updateChannels(){
     //usiing the null command one can retrive the channel data
     SPI.beginTransaction(SPIsetting);
     digitalWrite(CS, LOW);
-    STATUS.content = transfer16(0x00);
+    STATUS.content = transfer(0x00);
     for(uint8_t i=0; i<4; i++){
-        if(i==0){channels[i].value = transfer16(genCRC(0x00));}
-        else channels[i].value = transfer16(0x00);  
+        if(i==0){channels[i].value = transfer(genCRC(0x00));}
+        else channels[i].value = transfer(0x00);  
     }
-    uint16_t crc = transfer16(0x00);  
+    uint16_t crc = transfer(0x00);  
     digitalWrite(CS, HIGH);
     SPI.endTransaction();
     transADC();
@@ -327,12 +316,5 @@ uint16_t ADS130B04::extract_bits(uint16_t data, _bitPos pos){
     uint16_t bit_mask = ~(b >> (15-(pos.upper-pos.lower)) << pos.lower); //same as above
     return (data & ~bit_mask) >> pos.lower;
 }
-
-
-
-
-
-
-
 
 
